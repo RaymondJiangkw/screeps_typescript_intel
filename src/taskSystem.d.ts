@@ -26,9 +26,7 @@
  * 						Watcher: Do something if watching some events happen.
  * "Run" Unit:	   Dicide to run some tasks, and not to run some tasks.
  */
-
 /// <reference path="dataStructure.d.ts"/>
-
 type objectId = string;
 type creepId = string;
 type powerCreepId = string;
@@ -39,16 +37,12 @@ type TtargetGetter<T> = () => T | null;
 declare const TASK_DELETE: 15;
 declare const TASK_FINISH: 7;
 declare const TASK_RENEW: 3;
-type TASK_CODE = 3 | 7 | 15;
+type TASK_CODE = 0 | 3 | 7 | 15;
 
 /**
  * Function to issue triggered tasks.
  */
-type TTaskCallback = () => boolean;
-/**
- * Function to check whether terminate the task.
- */
-type TTaskTerminate = () => boolean;
+type TTaskCallback = () => { tasks: CTaskBase[], silences: boolean[], checkedDuplicate: true };
 /**
  * @interface ITaskType Origin Interface for taskType.
  */
@@ -73,11 +67,11 @@ interface ITaskTypeAcross<TtaskType, TsubTaskType> extends ITaskType<TtaskType, 
 	/**
 	 * Maximum Range between the received Room and the target Room.
 	 */
-	maxRange?: number;
+	maxRange: number;
 	/**
 	 * Maximum Number of Rooms which receive the Task.
 	 */
-	maxReceivedRooms?: number;
+	maxReceivedRooms: number;
 }
 /**
  * @interface ITaskTypeDecision Interface for taskType which makes decision.
@@ -90,6 +84,12 @@ interface ITaskTypeDecision<TtaskType, TsubTaskType, Tinterval> extends ITaskTyp
 	interval: Tinterval;
 }
 
+interface receivedInformation {
+	/** "any" here represents ANY OTHER, excluding those in {@link [role:string]:number} */
+	"any": number;
+	[role: string]: number;
+}
+
 type TTaskCategory = "basic" | "medium";
 
 /**
@@ -97,7 +97,7 @@ type TTaskCategory = "basic" | "medium";
  * Execution Layer.
  * These tasks act directly on single Creep.
  */
-type BasicTaskType = "attack" | "build" | "claim" | "defend" | "harvest" | "other" | "repair" | "transfer" | "upgrade";
+type BasicTaskType = "attack" | "build" | "claim" | "defend" | "harvest" | "other" | "repair" | "transfer" | "upgrade" | "travel";
 type TBasicTaskType =
 	ITaskTypeAcross<"attack", "power" | "heal"> |
 	ITaskTypeAttached<"build", "local"> | ITaskTypeAcross<"build", "remote"> |
@@ -137,51 +137,22 @@ type TAdvancedTaskType =
 	ITaskTypeDecision<"MArket", "Unlock_Buy" | "Pixel_Buy" | "Pixel_Sell" | "Key_Buy", 10000 | 50000 | 100000>;
 
 declare abstract class CTaskBase {
-	/**
-	 * Salt. The reason behind setting this parameter is that sometimes I need to issue
-	 * multiple identical tasks. But I calculate an unique fingerprint for each task in
-	 * order to avoid potential unexpected redundant duplicate tasks. So, in order to keep
-	 * redundant-avoid mechanism working and preserve the ability to issue identical task,
-	 * I introduce the "salt", which will be added when computing to generate different
-	 * fingerprint for identical task. Just like adding "Salt" to the "Soup".
-	 *
-	 * The Inspiration is from the Theory of Cryptography.
-	 */
-	private readonly _salt: number;
-	readonly id: taskId;
+	readonly id: string;
 	readonly identity: TBasicTaskType | TMediumTaskType;
 	/**
-	 * The priority to be received, the lower, the more urgent.
-	 * This function will be executed at some intervals in order to adjust the priority queue for receiving task.
-	 *
-	 * Based on the fact that there are at most 10 tasks usually for a specific taskType, and a specific subTaskType.
-	 * So, the time to adjust is about 10log10 ~ 30. In order to achieve "linearity" by amortizing the cost, doing the
-	 * adjustment per 3~5 ticks will be a good choice.
-	 */
-	readonly getPriority: () => number;
-	/**
-	 * Cache the result of getPriority().
-	 * The adjustment(add / delete) of priority queue will be executed based on this value, since dynamic result geenrated by getPriority() may
-	 * not sustain the structure of Priority Queue.
-	 */
-	priority: number;
-	/**
- 	 * Function to issue triggered tasks.
-	 * It will be executed whenever be received.
-	 *
-	 * Notice, though, the mechanism of redundant-avoid will somehow make the usage of this function more flexible.
- 	 */
+	  * Function to issue triggered tasks.
+	  * It will be executed whenever be added.
+	  */
 	readonly taskCallback?: TTaskCallback;
 	/**
-	 * Function to check whether terminate the task.
-	 * It will be executed by some tasks, including "Transfer Power", "Attack", "Defend" and etc., to check whether
-	 * terminate the task if creeps are idle.
+	 * Function to check whether needs to early terminate the task for one specific subject.
+	 * It will be executed after running the task.
 	 */
-	readonly taskTerminate?: TTaskTerminate;
+	readonly taskEarlyTerminate?: (subject: Creep | PowerCreep, attachedRoom: string) => boolean;
 	/**
 	 * Data, which should be inherited and modified.
 	 */
-	data: object;
+	data: { [propName: string]: any };
 	/**
 	 * Settings of Task, guiding headlines, such as "Issue", "Receive" and etc.
 	 */
@@ -194,33 +165,41 @@ declare abstract class CTaskBase {
 			/**
 			 * Expected Maximum Receiving Creeps' Group Number.
 			 */
-			max: number;
+			max: receivedInformation;
 			/**
 			 * Current Receiving Creeps' Group Number.
 			 */
-			current: number;
+			current: receivedInformation;
 			/**
 			 * Left Receiving Creeps' Group Number.
 			 */
-			left: number;
+			left: receivedInformation;
 		}
 	};
 	/**
 	 * Options of Task, guiding execution.
 	 */
-	options?: object;
+	options?: { [propName: string]: any };
 	/**
 	 * Run Program of Task.
 	 * Potential Creeps will be passed into this function in the form of Array.
 	 * In the case of "High-Level" task, no parameters will be passed.
+	 * @returns An array of TASK_CODE, indicating situations for every Creep | PowerCreep in {@param creeps}.
 	 */
-	run: (creeps?: Creep[]) => boolean;
+	run: (creeps?: Array<Creep | PowerCreep>) => TASK_CODE[];
+	/**
+	 * Because of different declarations of identity(home/targetRoom), this property
+	 * provides uniform port for getting the information about which room this task
+	 * should be performed 'TO'.
+	*/
+	targetRoom: string;
 }
 
 // Transfer Declaration.
 type TamountCheck = () => boolean;
 
 declare class CTaskTransfer extends CTaskBase {
+	get priority(): number;
 	/**
 	 * @param callback This function will act on each target to see whether it satisfies the requirements.
 	 * This function will return a target as soon as it meets one of which the callback is true from head or tail or undefined if it does not meet any.
@@ -245,6 +224,7 @@ declare class CTaskTransfer extends CTaskBase {
 // Work Declaration.
 
 declare class CTaskWork<T> extends CTaskBase {
+	get priority(): number;
 	data: {
 		target: TtargetGetter<T>,
 		roomName: string;
@@ -258,6 +238,7 @@ type CTaskUpgrade = CTaskWork<StructureController>;
 // Harvest Declaration.
 
 declare class CTaskHarvest extends CTaskBase {
+	get priority(): number;
 	data: {
 		target: TtargetGetter<Source | Deposit | Mineral>,
 		roomName: string,
@@ -277,6 +258,7 @@ declare class CTaskHarvest extends CTaskBase {
 // Travel Declaration.
 
 declare class CTaskTravel extends CTaskBase {
+	get priority(): number;
 	data: {
 		target: () => string;
 		roomList: Array<string>;
@@ -287,6 +269,7 @@ declare class CTaskTravel extends CTaskBase {
 // Basic Level Attack Task.
 
 declare class CTaskAttack extends CTaskBase {
+	get priority(): number;
 	data: {
 		target: TtargetGetter<StructurePowerBank | Creep>,
 		roomName?: string,
@@ -297,6 +280,7 @@ declare class CTaskAttack extends CTaskBase {
 // Basic Level Claim Task.
 
 declare class CTaskClaim extends CTaskBase {
+	get priority(): number;
 	data: {
 		roomName: string
 	}
@@ -306,6 +290,7 @@ declare class CTaskClaim extends CTaskBase {
 // Basic Level Defend Task.
 
 declare class CTaskDefend extends CTaskBase {
+	get priority(): number;
 	data: {
 		roomName: string
 	}
@@ -314,6 +299,7 @@ declare class CTaskDefend extends CTaskBase {
 // Other Declaration.
 
 declare class CTaskOther extends CTaskBase {
+	get priority(): number;
 	data: {
 		/**
 		 * This function will judge whether the Creep is suitable for this task.
@@ -327,20 +313,16 @@ declare class CTaskOther extends CTaskBase {
  * Declaration of Units.
  */
 
-declare class taskIdQueue extends PriorityQueue<taskId> {
-	static _refresh_interval: number;
-	private _last_refresh_tick: number;
-	private _refreshPriority: () => boolean;
-	private _callBefore: () => boolean;
-	protected _priority: (index: number) => number;
-}
-
-declare class taskIdTree extends TreePriorityQueue<taskId, taskIdQueue> {
+declare class taskIdTree extends TreeArray<taskId> {
+	/** This function does filter out those received tasks in fact. */
+	_popOneFromArray: (taskIds: Array<taskId>, role: string) => taskId | undefined;
 	/**
 	 * This function will get one task under specified node.
 	 * It is often used to get a task with specific "taskType" regardless of "subTaskType".
 	 */
-	getAnyFromNode: (path: Array<string>) => taskId | undefined;
+	popAnyFromNode: (path: Array<string>, role: string) => taskId | undefined;
+	popOneFromLeaf: (path: Array<string>, role: string) => taskId | undefined;
+	clearAllFromNode: (path: Array<string>) => boolean;
 }
 
 declare class registeredTaskIdTree extends TreeArray<taskId> {
@@ -351,8 +333,15 @@ declare class registeredTaskIdTree extends TreeArray<taskId> {
 	getAllFromNode: (path: Array<string>) => Array<taskId>;
 }
 
-type TaskIdPool = taskIdTree;
-type TaskIdRegistered = registeredTaskIdTree;
+/**
+ * Due to some very weired reasons of TypeScript, these harmless equivalent type declarations will
+ * make the compiler give the error:
+ * 	"Tree<N,P>" is not inherited from "Tree<N,P>".
+ * 	"taskIdTree" is unrelated to "taskIdTree".
+ * 	"_mount" is , ... .
+ */
+// type TaskIdPool = taskIdTree;
+// type TaskIdRegistered = registeredTaskIdTree;
 
 /**
  * The Storage Unit of Task System.
@@ -362,47 +351,61 @@ type TaskIdRegistered = registeredTaskIdTree;
 declare class CTaskStorageUnit {
 	/**
 	 * For Basic Tasks, the structure of Pool is [roomName][taskType][subTaskType].
+	 * Since in this way, we could easily manipulate the execulation and restriction of tasks based on the situation of one specific room.
+	 * For Medium Tasks, the structure of Pool is [roomName][taskType][subTaskType].
+	 *
+	 * For example, we may have a room, whose energy is much more than enough, and another room, whose energy is in the edge of exhaustion.
+	 * In the former room, transfer->advanced should be executed, since otherwise there would be nothing to do. However, in the latter room,
+	 * transfer->advanced should be delayed, and give much higher priority to transfer-> core to fill up the energy.
 	 */
-	protected _taskPool: {
-		basic: TaskIdPool,
-		medium: TaskIdPool,
+	_taskPool: {
+		basic: taskIdTree,
+		medium: taskIdTree,
 	};
-	addTask: (category: TTaskCategory, task: CTaskBase, path: Array<string>) => boolean;
-	/**
-	 * Special Auxiliary Function.
-	 * Since it is often used.
-	 */
-	addBasicTask: (task: CTaskBase, home: string) => boolean;
-	getTaskId: (category: TTaskCategory, path: Array<string>) => taskId | undefined;
-	/**
-	 * "getBasicTaskId" allows "subTaskType"-the third filter key- to be undefined, which means that
-	 * all the leaves under the node "taskType" are acceptable, even though it requires calling function to
-	 * provide specific task path when deals with "getTaskId".
-	 */
-	getBasicTaskId: (home: string, taskType: BasicTaskType, subTaskType?: string | undefined) => taskId | undefined;
-	delTasks: (category: TTaskCategory, criterion: (value: taskId) => boolean, path: Array<string>) => boolean;
+	addTaskId: (category: TTaskCategory, taskId: taskId, path: Array<string>) => boolean;
+	/** This code provides convenience, but consumes extra time. */
+	addBasicTaskId: (taskId: taskId, home: string) => boolean;
+	popTaskId: (category: TTaskCategory, path: Array<string>, role: string) => taskId | undefined;
+	popAnyTaskId: (category: TTaskCategory, path: Array<string>, role: string) => taskId | undefined;
+	clearTaskIds: (category: TTaskCategory, path: Array<string>) => boolean;
 	/**
 	 * The setting of "subTaskType" parameter is the same with "getBasicTaskId".
-	 * But notice that if the calling function lets "subTaskType" to be undefined, it will usually be very time-consuming.
 	 */
-	delBasicTasks: (criterion: (value: taskId) => boolean, home: string, taskType: BasicTaskType, subTaskType?: string | undefined) => boolean;
+	clearBasicTaskIds: (home: string, taskType: BasicTaskType, subTaskType?: string | undefined) => boolean;
 }
 /**
  * The Run Unit of Task System.
  * Its main function is to run tasks, which means that it does not care about the time. You give the order and it runs.
  */
 declare class CTaskRunUnit {
-	protected _registeredTasks: {
-		basic: TaskIdRegistered,
-		medium: TaskIdRegistered,
+	/**
+	 * For Basic Tasks, the structure of Pool is [roomName][taskType][subTaskType].
+	 * Since in this way, we could easily manipulate the execulation and restriction of tasks based on the situation of one specific room.
+	 * For Medium Tasks, the structure of Pool is [roomName][taskType][subTaskType].
+	 *
+	 * For example, we may have a room, whose energy is much more than enough, and another room, whose energy is in the edge of exhaustion.
+	 * In the former room, transfer->advanced should be executed, since otherwise there would be nothing to do. However, in the latter room,
+	 * transfer->advanced should be delayed, and give much higher priority to transfer-> core to fill up the energy.
+	 */
+	_registeredTasks: {
+		basic: registeredTaskIdTree,
+		medium: registeredTaskIdTree,
 	};
 	addRegTaskId: (category: TTaskCategory, taskId: taskId, path: Array<string>) => boolean;
+	/** This code provides convenience, but consumes extra time. */
 	addRegBasicTaskId: (taskId: taskId, home: string) => boolean;
+	assignRegTaskIds: (category: TTaskCategory, taskIds: taskId[], path: Array<string>) => boolean
 	/**
-	 * This function will return those tasks which do not return OK.
+	 * @param settings.runAll Whether to run all the tasks under this node.
+	 * @returns For each task, return its id and corresponding returned TASK_CODE for each creep.
 	 */
-	runTasks: (category: TTaskCategory, path: Array<string>) => { taskId: taskId, ret: TASK_CODE }[];
-	runBasicTasks: (home: string, taskType: BasicTaskType, subTaskType?: string | undefined) => { taskId: taskId, ret: TASK_CODE }[];
+	runTasks: (category: TTaskCategory, path: Array<string>, settings?: { runAll: boolean }) => { taskId: taskId, ret: TASK_CODE[] }[];
+	/**
+	 * "runBasicTasks" allows "subTaskType"-the third filter key- to be undefined, which means that
+	 * all the tasks of leaves under the node "taskType" will be executed.
+	 */
+	runBasicTasks: (home: string, taskType: BasicTaskType, subTaskType?: string | undefined) => { taskId: taskId, ret: TASK_CODE[] }[];
+	clearTasks: (category: TTaskCategory, path: Array<string>, settings?: { clearAll: boolean }) => boolean;
 }
 /**
  * The Core Unit of Task System.
@@ -413,24 +416,52 @@ declare class CTaskCoreUnit {
 	storage: CTaskStorageUnit;
 	run: CTaskRunUnit;
 	/** These instructions belong to "simple" ones. */
-	instruction: {
-		/** Some Advanced Tasks will be issued through this method dynamically. */
-		addTask: (task: CTaskBase, settings?: { silence: boolean }) => boolean;
+	instructions: {
+		/** When adding Task, the first step is to check the existence of task by using Id.*/
+		checkTaskExistence: (taskId: taskId) => boolean;
 		/**
-		 * Assigning Task to Creeps | PowerCreeps will not change the "received" status of task.
-		 * The idea behind it is that this is a kind of "violent intervention" behavior.
+		 * Some Advanced Tasks will be issued through this method dynamically.
+		 * Add Task here also has the responsibility of distributing tasks whose identities are expected to be ITaskTypeAcross.
+		 * The motivation of this mechanism is that, when constructing these tasks(something like new CTaskBase()), the information
+		 * should be compact, which saves duplicate labour and is exactly the purpose of design, especially interface {@link ITaskTypeAcross}.
+		 *
+		 * For example, assume I have a task, harvesting deposite at some room, to be received by 3 rooms, if these receiving rooms
+		 * are supposed to be defined at constructing tasks, at _addTask, the program needs to call _addTask three times, namely:
+		 * _addTask(true,task,home_1); _addTask(true,task,home_2); _addTask(true,task,home_3), which is ugly and the information stored
+		 * in ITaskTypeAcross will be meaningless!
+		 * However, if _addTask bears this responsibility, _addTask will be called only once and the information of ITaskTypeAcross will
+		 * be useful.
+		 * Even though this adds some couple to working, it helps clean the code much and represents my idea of design: abstract -> concrete.
+		 *
+		 * @param checkedExistence This parameter is useless in running program, but its only purpose is to remind programmer to check
+		 * the existence of task before adding.
 		 */
-		assignTask: (subject: Creep | PowerCreep, taskId: string) => boolean;
+		addTask: (checkedExistence: true, task: CTaskBase, settings?: { silence: boolean }) => boolean;
 		/**
-		 * Delete Task should accept parameters of "delTasks" | "delBasicTasks" of the Storage Unit.
+		 * Assigning Task to Creeps | PowerCreeps require they do not have any task in hand.
+		 * @param excludeFromIdle Remind programmer to first exclude these subjects from IdleCreepTree.
+		 * @returns true, all successful | false, something goes wrong.
 		 */
-		delTask: () => boolean;
-		getTask: (subject: Creep | PowerCreep) => boolean;
+		assignTask: (excludeFromIdle: true, subject_s: Array<Creep | PowerCreep>, taskId: string) => boolean;
+		/**
+		 * Clear Task should accept parameters of "clearTasks" | "clearBasicTasks" of the Storage Unit.
+		 */
+		clearTasks: { (category: TTaskCategory, path: string[]): boolean; (home: string, taskType: BasicTaskType, subTaskType?: string | undefined): boolean; };
+		/** This requires the subject does not have task in hand. */
+		getTask: (notInIdle: true, subject: Creep | PowerCreep) => boolean;
 		/**
 		 * Run Task should accept parameters of "runTasks" | "runBasicTasks" of the Run Unit.
+		 * @param path The first parameter must be home.
 		 */
-		runTask: () => boolean;
+		runTasks: { (category: TTaskCategory, path: string[], settings?: { runAll: boolean; }): boolean; (home: string, taskType: BasicTaskType, subTaskType?: string | undefined): boolean; };
 	}
+	_checkTaskExistence: (taskId: taskId) => boolean;
+	_addTask: (checkedExistence: true, task: CTaskBase, settings?: { silence: boolean }) => boolean;
+	_assignTask: (excludeFromIdle: true, subject_s: Array<Creep | PowerCreep>, taskId: string) => boolean;
+	_clearTasks: { (category: TTaskCategory, path: string[]): boolean; (home: string, taskType: BasicTaskType, subTaskType?: string | undefined): boolean; };
+	_reThrustTask: (subject: Creep | PowerCreep, task: CTaskBase) => boolean;
+	_getTask: (notInIdle: true, subject: Creep | PowerCreep) => boolean;
+	_runTasks: { (category: TTaskCategory, path: string[], settings?: { runAll: boolean; }): boolean; (home: string, taskType: BasicTaskType, subTaskType?: string | undefined): boolean; };
 }
 
 /**
@@ -439,106 +470,191 @@ declare class CTaskCoreUnit {
  * Instruction of Control Unit consists of "run()", called during the loop, and other methods, called during the compilation.
  */
 
+/** TreeLevel should be descending. Its structure should bear the feature: subNode must be a key of parent node. */
 declare class TreeLevel extends TreeObject<number> {
 	getLastFromPath: (path: Array<string>) => number | undefined;
+	accumulateThroughPath: (path: Array<string>) => number | undefined;
 }
 
-/** Calling Order: Adjust -> Issue -> Run(Record). */
+/**
+ * Calling Order: Adjust -> Issue -> Run(Record).
+ */
 declare class CTaskControlUnit {
-	/** Record will be called while executing other units. */
+	/**
+	 * Record will be called while executing other units.
+	 *
+	 * Current Optimization:
+	 * - Prevent Tasks Prevented from Execution from being Issued.
+	 *   Record for each room, for each taskType(->subTaskType), their call times, including success(+1) and failure(-1).
+	 *   Based on this information, it records at some interval for each room->taskType(->subTaskType) the times that they are lower than one(+1)
+	 *   (greater than one will compensate for it(-1), but will not make the total times lower than 0).
+	 *   Based on this information, the {@link Controller.Issue} will cut the issue of tasks, which were prevented from execution for many times to
+	 *   save extra CPU consumption.
+	 */
 	Record: {
 		/** Here should include all the Indexs. */
 		data: {
 			[index: string]: TreeObject<any>;
 		}
-		setting: {
+		settings: {
 			/** After Such Interval, all the Data will be wiped out. */
 			record_interval: number;
 			last_record_tick: number;
 		}
-		instruction: {
+		instructions: {
 			addRecord: (index: string, path: Array<string>, key: string, record: any) => boolean;
 			getRecord: (index: string, path: Array<string>, key: string) => any | undefined;
+			delRecord: (index: string, path: Array<string>, key: string) => boolean;
 		}
 	}
 	/**
 	 * Adjust directly acts upon the 'setting' of other units.
 	 */
 	Adjust: {
-		setting: {
+		data: {
+			adjustLevelFuncs: Array<(roomName: string, current: TreeLevel) => boolean>;
+		}
+		settings: {
 			adjust_interval: number;
 			last_adjust_tick: number;
 		}
-		instruction: {
+		instructions: {
 			run: () => boolean;
+			analyseRecord: () => boolean;
 			adjustSwitch: () => boolean;
 			adjustLevel: () => boolean;
+			addToAdjustLevelFuncs: (func: (roomName: string, current: TreeLevel) => boolean) => boolean;
 		}
 	}
 	Issue: {
 		data: {
-			timer: { [tick: number]: { func: () => any; params: Array<any>; }; }
+			timer: { [tick: number]: { func: (...args: any[]) => any; params: Array<any>; }[]; }
 			/** This is only intended for Basic Task, which should be scanned at every tick and never be stopped. */
 			list: Array<CTaskIssueListPiece<Room | Structure | Source | Mineral | Flag>>;
-			watcher: { [event: string]: () => any; };
+			watcher: { [event: string]: Array<(roomName: string, event: EventItem) => any>; };
 		}
-		setting: {
+		settings: {
 			switch: {
 				timer: boolean;
 				list: boolean;
 				watcher: boolean;
 			}
 		}
-		instruction: {
+		instructions: {
 			run: () => boolean;
 			/** These instructions are called outside the loop. */
-			addToTimer: (tick: number, func: () => any, params: Array<any>) => boolean;
-			addToList: <T>(item: CTaskIssueListPiece<T>) => boolean;
-			addToWatcher: (event: EventConstant, func: () => any) => boolean;
+			addToTimer: (tick: number, func: (...args: any[]) => any, params: Array<any>) => boolean;
+			addToList: (item: CTaskIssueListPiece<Room | Structure | Source | Mineral | Flag>) => boolean;
+			addToWatcher: (event: EventConstant, func: (roomName: string, event: EventItem) => any) => boolean;
 		}
 	}
 	Run: {
 		data: {
 			/** While running the scheduled task, it should also be noticed that it could be stopped by level. */
-			scheduler: { [interval: number]: Array<TAdvancedTaskType | TMediumTaskType> };
+			scheduler: { [interval: number]: Array<TAdvancedTaskType> };
 		}
-		setting: {
+		settings: {
 			switch: {
 				scheduler: boolean;
 			}
 			level: {
+				/**
+				 * current Should be dynamic standard for running for different room, having the structure [roomName][taskType][subTaskType].
+				 * Structure:
+				 * path		  -> path		-> key
+				 * roomName_1 -> taskType_1 -> subTaskType_1
+				 * 							-> subTaskType_2
+				 * 							-> ...
+				 * 			  -> taskType_2 -> subTaskType_1
+				 * 							-> ...
+				 * 			  -> ...
+				 * roomName_2 -> ...
+				 * ...
+				 *
+				 * Value at roomName displays its current Maximum Priority.
+				 * Value at other nodes displays the modification.
+				 */
 				current: TreeLevel;
+				/**
+				 * statistic Should be a universal standard for running, having the structure [taskType][subTaskType].
+				 * Structure:
+				 * path		  -> key
+				 * taskType_1 -> subTaskType_1
+				 * 			  -> subTaskType_2
+				 * 			  -> ...
+				 * taskType_2 -> ...
+				 * ...
+				 *
+				 * Value at taskType displays the priority of this kind of task.
+				 * Value at subTaskType displays the modification of priority of this kind of task.
+				 */
 				statistic: TreeLevel;
 			}
 		}
-		instruction: {
-			/** Run the Scheduler and All registered Tasks based on the situation of Level. */
+		instructions: {
+			/** Iterate Idle Creeps to get Task and Run the Scheduler and All registered Tasks based on the situation of Level. */
 			run: () => boolean;
 			/** These instructions are called outside the loop. */
-			addToScheduler: (item: TAdvancedTaskType | TMediumTaskType) => boolean;
+			addToScheduler: (item: TAdvancedTaskType) => boolean;
 		}
 	}
 	run: () => boolean;
+	_RecordPreCheck: () => boolean;
+	_RecordAddRecord: (index: string, path: Array<string>, key: string, record: any) => boolean;
+	_RecordGetRecord: (index: string, path: Array<string>, key: string) => any | undefined;
+	_RecordDelRecord: (index: string, path: Array<string>, key: string) => boolean;
+	_IssueAddToTimer: (tick: number, func: (...args: any[]) => any, params: Array<any>) => boolean;
+	_IssueAddToList: (item: CTaskIssueListPiece<Room | Structure | Source | Mineral | Flag>) => boolean;
+	_IssueAddToWatcher: (event: EventConstant, func: (roomName: string, event: EventItem) => any) => boolean;
+	_RunAddToScheduler: (item: TAdvancedTaskType) => boolean;
+	/** @param criterion only will preNumber satisfying this criterion be modified. */
+	_RecordNumberModify: (index: string, path: string[], key: string, modify: number, criterion?: (preNumber: number) => boolean) => boolean;
+	_RunRun: () => boolean;
+	_IssueRun: () => boolean;
+	_AdjustRun: () => boolean;
+	/** @todo */
+	_AdjustSwitch: () => boolean;
+	_AdjustLevel: () => boolean;
+	_AdjustAnalyseRecord: () => boolean;
+	_AdjustAddToAdjustLevelFuncs: (func: (roomName: string, current: TreeLevel) => boolean) => boolean;
 }
 
-declare class CTaskIssueListPiece<T>{
+interface CTaskIssueListPiece<T> {
+	/** Information about what kind of task it is going to issue. It will be used to prevent some useless tasks. */
+	identity: {
+		taskType: BasicTaskType | MediumTaskType;
+		subTaskType: string;
+		triggerToOrigin: boolean;
+	}
 	subjects: Array<T> | { [propName: string]: T };
 	condition: (subject: T) => boolean;
-	triggered: (subject: T) => boolean;
+	/**
+	 * @returns "duplicate" indicates task exists.
+	 */
+	triggered: (subject: T) => { tasks: CTaskBase[], silences: boolean[], checkedDuplicate: true };
 }
 
-type CreepTree = TreeArray<Creep | PowerCreep>;
-
+declare class CTaskLoadUnit {
+	instructions: {
+		registerCreep: (subject: Creep | PowerCreep) => boolean;
+		unRegisterCreep: (memory: CreepMemory) => boolean;
+	}
+	_registerCreep: (subject: Creep | PowerCreep) => boolean;
+	_unRegisterCreep: (memory: CreepMemory) => boolean;
+	/** Run should be called after issuing task. Register all the creeps and Try to get the task. */
+	run: () => boolean;
+}
 declare namespace NodeJS {
 	interface Global {
 		taskSystem: {
 			Memory: {
 				WareHouse: { [taskId: string]: CTaskBase };
 				Roll: { [taskId: string]: Array<Creep | PowerCreep> };
-				IdleCreeps: CreepTree;
+				IdleCreeps: TreeArray<Creep | PowerCreep>;
 			}
 			Processor: CTaskCoreUnit;
 			Controller: CTaskControlUnit;
+			Loader: CTaskLoadUnit;
 		}
 	}
 }
