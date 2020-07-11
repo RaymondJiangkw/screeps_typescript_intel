@@ -139,3 +139,11 @@ export const roomInfoRefreshInterval = {
 	"controller": 500,
 	"creep": 2
 }
+
+/** The Order to check whether these roles should be spawned */
+export const spawnOrder = {
+
+}
+
+/** The Interval between the spawn of two Creeps */
+export const spawnInterval = 50;

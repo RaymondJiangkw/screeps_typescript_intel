@@ -1,22 +1,31 @@
 /// <reference path="taskSystem.d.ts"/>
+/// <reference path="infoSystem.d.ts" />
+/// <reference path="spawnSystem.d.ts" />
+
+
 // <reference path="infoSystem.d.ts" />
 /**
  * 本项目中出现的颜色常量
  * @author HoPGoldy
  */
 
-type Colors = 'green' | 'blue' | 'yellow' | 'red'
+type Colors = 'green' | 'blue' | 'yellow' | 'red';
+
+/** The Role of Creeps */
+type CreepRole = "harvester" | "upgrader" | "transferer" | "weak_transferer" | // This is the 'transferer' which only takes the job of central transfering
+	"worker" | "repairer";
+
 // prototype extension
 interface Creep {
 	/**
-	 * @todo
+	 * @todo This should take account of {@link CreepMemory.earlyTerminateTasks}
 	 * @returns ([taskCategory,taskType] | [taskCategory,taskType,[subTaskType_1,subTaskType_2...]])[]
 	 */
 	acceptTasks: () => Array<[TTaskCategory, BasicTaskType | MediumTaskType] | [TTaskCategory, BasicTaskType | MediumTaskType, string[]]>;
 }
 interface PowerCreep {
 	/**
-	 * @todo
+	 * @todo This should take account of {@link PowerCreepMemory.earlyTerminateTasks}
 	 * @returns ([taskCategory,taskType] | [taskCategory,taskType,[subTaskType_1,subTaskType_2...]])[]
 	 */
 	acceptTasks: () => Array<[TTaskCategory, BasicTaskType | MediumTaskType] | [TTaskCategory, BasicTaskType | MediumTaskType, string[]]>;
@@ -25,7 +34,7 @@ interface PowerCreep {
 // memory extension
 interface CreepMemory {
 	taskId: taskId | null;
-	role: string;
+	role: CreepRole;
 	home: string;
 	working: boolean;
 	/** Whenever creep is renewed, this array should be cleared. */
@@ -33,15 +42,21 @@ interface CreepMemory {
 }
 interface PowerCreepMemory {
 	taskId: taskId | null;
-	role: string;
+	role: CreepRole;
 	home: string;
 	working: boolean;
 	/** Whenever powerCreep is renewed, this array should be cleared. */
 	earlyTerminateTasks: Array<[BasicTaskType | MediumTaskType, string]>;
 }
+interface SpawnMemory {
+	lastSpawningTick: number;
+}
 interface Memory {
 
 }
+
+
+type RoomInfo = controlledRoom | unownedRoom | observedRoom | neutralRoom | hostileRoom;
 
 // `global` extension
 declare namespace NodeJS {
@@ -57,17 +72,32 @@ declare namespace NodeJS {
 			Loader: CTaskLoadUnit;
 		}
 		infoSystem: {
-			Portals: {
-				/** Example shard2 -> W20N20 -> shard3 -> W20N20 -> PortalA, in which PortalA lying in shard3-W20N20, connects shard3-W20N20 to shard2-W20N20 */
-				[shard: string]: { [roomName: string]: { [shard: string]: { [from: string]: Set<StructurePortal> } } }
+			Memory: {
+				Portals: {
+					/** Example shard2 -> W20N20 -> shard3 -> W20N20 -> PortalA, in which PortalA lying in shard3-W20N20, connects shard3-W20N20 to shard2-W20N20 */
+					[shard: string]: { [roomName: string]: { [shard: string]: { [from: string]: Set<StructurePortal> } } }
+				}
+				Rooms: {
+					my: string[],
+					hostile: string[],
+					observed: string[],
+					neutral: string[],
+					unowned: string[],
+					[roomName: string]: RoomInfo | string[];
+				}
 			}
-			Rooms: {
-				[roomName: string]: controlledRoom | unownedRoom | observedRoom | neutralRoom | hostileRoom;
+			Processor: InfoProcessor
+		}
+		spawnSystem: {
+			Memory: {
+				expected: {
+					[roomName: string]: { [role in CreepRole]?: number }
+				}
+				current: {
+					[roomName: string]: { [role in CreepRole]?: number }
+				}
 			}
-			instructions: {
-				addToPortal: (toShard: string, toRoom: string, fromShard: string, fromRoom: string, portal: StructurePortal) => boolean;
-				refresh: () => void;
-			}
+			Processor: spawnProcessor
 		}
 	}
 }

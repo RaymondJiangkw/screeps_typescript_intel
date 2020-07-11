@@ -27,6 +27,7 @@
  * "Run" Unit:	   Dicide to run some tasks, and not to run some tasks.
  */
 /// <reference path="dataStructure.d.ts"/>
+/// <reference path="types.d.ts" />
 type objectId = string;
 type creepId = string;
 type powerCreepId = string;
@@ -315,13 +316,13 @@ declare class CTaskOther extends CTaskBase {
 
 declare class taskIdTree extends TreeArray<taskId> {
 	/** This function does filter out those received tasks in fact. */
-	_popOneFromArray: (taskIds: Array<taskId>, role: string) => taskId | undefined;
+	_popOneFromArray: (taskIds: Array<taskId>, role: CreepRole) => taskId | undefined;
 	/**
 	 * This function will get one task under specified node.
 	 * It is often used to get a task with specific "taskType" regardless of "subTaskType".
 	 */
-	popAnyFromNode: (path: Array<string>, role: string) => taskId | undefined;
-	popOneFromLeaf: (path: Array<string>, role: string) => taskId | undefined;
+	popAnyFromNode: (path: Array<string>, role: CreepRole) => taskId | undefined;
+	popOneFromLeaf: (path: Array<string>, role: CreepRole) => taskId | undefined;
 	clearAllFromNode: (path: Array<string>) => boolean;
 }
 
@@ -365,8 +366,8 @@ declare class CTaskStorageUnit {
 	addTaskId: (category: TTaskCategory, taskId: taskId, path: Array<string>) => boolean;
 	/** This code provides convenience, but consumes extra time. */
 	addBasicTaskId: (taskId: taskId, home: string) => boolean;
-	popTaskId: (category: TTaskCategory, path: Array<string>, role: string) => taskId | undefined;
-	popAnyTaskId: (category: TTaskCategory, path: Array<string>, role: string) => taskId | undefined;
+	popTaskId: (category: TTaskCategory, path: Array<string>, role: CreepRole) => taskId | undefined;
+	popAnyTaskId: (category: TTaskCategory, path: Array<string>, role: CreepRole) => taskId | undefined;
 	clearTaskIds: (category: TTaskCategory, path: Array<string>) => boolean;
 	clearBasicTaskIds: (home: string, taskType: BasicTaskType, subTaskType?: string | undefined) => boolean;
 }
@@ -640,18 +641,4 @@ declare class CTaskLoadUnit {
 	_unRegisterCreep: (memory: CreepMemory) => boolean;
 	/** Run should be called after issuing task. Register all the creeps and Try to get the task. */
 	run: () => boolean;
-}
-declare namespace NodeJS {
-	interface Global {
-		taskSystem: {
-			Memory: {
-				WareHouse: { [taskId: string]: CTaskBase };
-				Roll: { [taskId: string]: Array<Creep | PowerCreep> };
-				IdleCreeps: TreeArray<Creep | PowerCreep>;
-			}
-			Processor: CTaskCoreUnit;
-			Controller: CTaskControlUnit;
-			Loader: CTaskLoadUnit;
-		}
-	}
 }

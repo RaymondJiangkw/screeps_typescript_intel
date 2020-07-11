@@ -217,5 +217,12 @@ declare class hostileRoom extends RoomBase implements CResourceInfo, CEconomyInf
 	_collectControllerInfo(room: Room): boolean;
 	creeps: { live: creepEvaluation[]; spawning?: creepEvaluation[]; };
 	_collectCreepInfo(room: Room): boolean;
+}
 
+declare class InfoProcessor {
+	instructions: {
+		addToPortal: (toShard: string, toRoom: string, fromShard: string, fromRoom: string, portal: StructurePortal) => boolean;
+		refreshRoom: () => void;
+	}
+	run(): boolean;
 }

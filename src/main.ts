@@ -5,7 +5,9 @@ import mount from "./mount";
 mount();
 export const loop = ErrorMapper.wrapLoop(() => {
 	// Collect Available Information
-	global.infoSystem.instructions.refresh();
+	global.infoSystem.Processor.run();
+	// Collect Current Creep Info
+	global.spawnSystem.Processor.run();
 	// Automatically delete memory of missing creeps
 	for (const name in Memory.creeps) {
 		if (!(name in Game.creeps)) {
@@ -15,4 +17,7 @@ export const loop = ErrorMapper.wrapLoop(() => {
 	};
 	// Run the Main Program
 	global.taskSystem.Controller.run();
+	// Spawn the Creeps
+	global.spawnSystem.Processor.spawn();
+	return true;
 });

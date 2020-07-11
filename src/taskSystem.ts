@@ -23,9 +23,8 @@ function getTaskCategory(task_or_taskType: CTaskBase | (BasicTaskType | MediumTa
 }
 /**
  * This function will only check whether the result of modification makes the number less than 0, excluding bigger than maximum, which is promised by the logic.
- * @todo Collect the information about required roles for potential spawning
  */
-function adjustReceivedStatus(receivedStatus: receivedInformation, role: string, modify: number): boolean {
+function adjustReceivedStatus(receivedStatus: receivedInformation, role: CreepRole, modify: number): boolean {
 	if (receivedStatus[role]) {
 		if (receivedStatus[role] + modify >= 0) {
 			receivedStatus[role] += modify;
@@ -39,7 +38,7 @@ function adjustReceivedStatus(receivedStatus: receivedInformation, role: string,
 	}
 }
 
-function isReceivedValid(leftReceived: receivedInformation, role: string): boolean {
+function isReceivedValid(leftReceived: receivedInformation, role: CreepRole): boolean {
 	if (leftReceived[role]) return leftReceived[role] > 0;
 	else return leftReceived["any"] > 0;
 }
@@ -48,6 +47,13 @@ function constructReceivedInformation(receivedInfo: receivedInformation, fillUp?
 	const ret: receivedInformation = { "any": 0 };
 	for (const role in receivedInfo) ret[role] = fillUp ? fillUp : receivedInfo[role];
 	return ret;
+}
+
+function collectReceivedInformation(receivedInfo: receivedInformation, roomName: string) {
+	for (const role in receivedInfo) {
+		if (role === "any") continue;
+		global.spawnSystem.Processor.instructions.modifyExpectedCreeps(roomName, role as CreepRole, receivedInfo[role]);
+	}
 }
 
 /**
@@ -133,7 +139,7 @@ export abstract class CTaskBase {
 
 class taskIdTree extends TreeArray<taskId> {
 	/** This function does filter out those received tasks in fact. */
-	_popOneFromArray(taskIds: Array<taskId>, role: string): taskId | undefined {
+	_popOneFromArray(taskIds: Array<taskId>, role: CreepRole): taskId | undefined {
 		for (let i = taskIds.length - 1; i >= 0; i--) {
 			if (isReceivedValid(global.taskSystem.Memory.WareHouse[taskIds[i]].settings.received.left, role)) {
 				if (i === taskIds.length - 1) return taskIds.pop();
@@ -146,7 +152,7 @@ class taskIdTree extends TreeArray<taskId> {
 	 * This function will get one task under specified node.
 	 * It is often used to get a task with specific "taskType" regardless of "subTaskType".
 	 */
-	popAnyFromNode(path: Array<string>, role: string): taskId | undefined {
+	popAnyFromNode(path: Array<string>, role: CreepRole): taskId | undefined {
 		let node = this._extractNode(path);
 		if (node === undefined) return undefined;
 		const extractOne = (n: ITreeStructure<Array<taskId>>): taskId | undefined => {
@@ -164,7 +170,7 @@ class taskIdTree extends TreeArray<taskId> {
 		};
 		return extractOne(node);
 	}
-	popOneFromLeaf(path: Array<string>, role: string): taskId | undefined {
+	popOneFromLeaf(path: Array<string>, role: CreepRole): taskId | undefined {
 		let taskIds = this.getAllFromLeaf(path);
 		return this._popOneFromArray(taskIds, role);
 	}
@@ -224,10 +230,10 @@ class CTaskStorageUnit {
 		const task = global.taskSystem.Memory.WareHouse[taskId];
 		return this.addTaskId("basic", taskId, [home, task.identity.taskType, task.identity.subTaskType]);
 	}
-	popTaskId(category: TTaskCategory, path: Array<string>, role: string): taskId | undefined {
+	popTaskId(category: TTaskCategory, path: Array<string>, role: CreepRole): taskId | undefined {
 		return this._taskPool[category].popOneFromLeaf(path, role);
 	}
-	popAnyTaskId(category: TTaskCategory, path: Array<string>, role: string): taskId | undefined {
+	popAnyTaskId(category: TTaskCategory, path: Array<string>, role: CreepRole): taskId | undefined {
 		return this._taskPool[category].popAnyFromNode(path, role);
 	}
 	clearTaskIds(category: TTaskCategory, path: Array<string>): boolean {
@@ -364,7 +370,9 @@ export class CTaskCoreUnit {
 		if (global.taskSystem.Memory.WareHouse[taskId]) return true;
 		else return false;
 	}
-	/** @todo Collect the information about required roles for potential spawning */
+	/**
+	 * @param settings.silence This will make task not added to the taskPool and its requiring creep roles will not be collected.
+	 */
 	_addTask(checkedExistence: true, task: CTaskBase, settings = { silence: false }): boolean {
 		_.defaults(settings, { silence: false });
 		global.taskSystem.Memory.WareHouse[task.id] = task;
@@ -372,11 +380,16 @@ export class CTaskCoreUnit {
 			const category: TTaskCategory = getTaskCategory(task);
 			// Since 'task' belongs to CTaskBase, which only accepts "basic" or "medium" tasks that have specific
 			// room to mount, the structure of storing these tasks must have node "roomName".
-			if ((task.identity as ITaskTypeAttached<any, any>).home) return this.storage.addTaskId(category, task.id, [(task.identity as ITaskTypeAttached<any, any>).home, task.identity.taskType, task.identity.subTaskType]);
-			else if ((task.identity as ITaskTypeAcross<any, any>).targetRoom) {
+			if ((task.identity as ITaskTypeAttached<any, any>).home) {
+				this.storage.addTaskId(category, task.id, [(task.identity as ITaskTypeAttached<any, any>).home, task.identity.taskType, task.identity.subTaskType]);
+				collectReceivedInformation(task.settings.received.max, (task.identity as ITaskTypeAttached<any, any>).home);
+			} else if ((task.identity as ITaskTypeAcross<any, any>).targetRoom) {
 				const identity = task.identity as ITaskTypeAcross<any, any>;
 				const receivingRooms = adjacentRooms(identity.targetRoom, identity.maxRange, identity.maxReceivedRooms);
-				for (let roomName of receivingRooms) this.storage.addTaskId(category, task.id, [roomName, task.identity.taskType, task.identity.subTaskType]);
+				for (let roomName of receivingRooms) {
+					this.storage.addTaskId(category, task.id, [roomName, task.identity.taskType, task.identity.subTaskType]);
+					collectReceivedInformation(task.settings.received.max, roomName);
+				}
 			}
 		}
 		if (task.taskCallback) {
@@ -745,8 +758,7 @@ export class CTaskControlUnit {
 	}
 	_RunRun(): boolean {
 		const Processor = global.taskSystem.Processor;
-		/** @todo Substitute for "Info" System */
-		const controlledRooms = _.filter(Game.rooms, r => r.controller && r.controller.my).map(r => r.name);
+		const controlledRooms = global.infoSystem.Memory.Rooms.my;
 		const staticLevel = this.Run.settings.level.statistic;
 		const roomLevel = this.Run.settings.level.current;
 		// Get available taskType and its corresponding subTaskType from staticLevel.
@@ -846,8 +858,7 @@ export class CTaskControlUnit {
 		return true;
 	}
 	_AdjustLevel(): boolean {
-		/** @todo Substitute for "Info" System */
-		const controlledRooms = _.filter(Game.rooms, r => r.controller && r.controller.my).map(r => r.name);
+		const controlledRooms = global.infoSystem.Memory.Rooms.my;
 		controlledRooms.forEach((roomName: string) => {
 			for (const func of this.Adjust.data.adjustLevelFuncs) func(roomName, this.Run.settings.level.current);
 		});

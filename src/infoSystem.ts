@@ -1,45 +1,66 @@
 /// <reference path="./mount/prototype.Room.structures.d.ts" />
 /// <reference path="./mount/prototype.Room.resources.d.ts" />
+/// <reference path="./mount/prototype.Room.Creeps.d.ts" />
 /// <reference path="./infoSystem.d.ts" />
 import { evaluateCreepCapacity, mixinFactory, RoomState } from "./utils/utils"
 import { isFunction } from "lodash";
 import { roomInfoRefreshInterval } from "./utils/settings"
 
-export function addToPortal(toShard: string, toRoom: string, fromShard: string, fromRoom: string, portal: StructurePortal): boolean {
-	const Portals = global.infoSystem.Portals;
-	if (!Portals[toShard]) Portals[toShard] = {};
-	if (!Portals[toShard][toRoom]) Portals[toShard][toRoom] = {};
-	if (!Portals[toShard][toRoom][fromShard]) Portals[toShard][toRoom][fromShard] = {};
-	if (!Portals[toShard][toRoom][fromShard][fromRoom]) Portals[toShard][toRoom][fromShard][fromRoom] = new Set();
-	global.infoSystem.Portals[toShard][toRoom][fromShard][fromRoom].add(portal);
-	return true;
-}
-
-export function refreshInfoSystem() {
-	for (const key in Game.rooms) {
-		const room = Game.rooms[key];
-		if (!(room.name in global.infoSystem.Rooms)) {
-			const state = RoomState(room);
-			switch (state) {
-				case "controlled":
-					global.infoSystem.Rooms[room.name] = new controlledRoom(room) as controlledRoom;
-					break;
-				case "hostile":
-					global.infoSystem.Rooms[room.name] = new hostileRoom(room) as hostileRoom;
-					break;
-				case "neutral":
-					global.infoSystem.Rooms[room.name] = new neutralRoom(room) as neutralRoom;
-					break;
-				case "observed":
-					global.infoSystem.Rooms[room.name] = new observedRoom(room) as observedRoom;
-					break;
-				case "unowned":
-					global.infoSystem.Rooms[room.name] = new unownedRoom(room) as unownedRoom;
-					break;
-				default:
-					break;
-			}
-		} else global.infoSystem.Rooms[room.name].refresh();
+export class InfoProcessor {
+	instructions: {
+		addToPortal: (toShard: string, toRoom: string, fromShard: string, fromRoom: string, portal: StructurePortal) => boolean;
+		refreshRoom: () => void;
+	}
+	_addToPortal(toShard: string, toRoom: string, fromShard: string, fromRoom: string, portal: StructurePortal): boolean {
+		const Portals = global.infoSystem.Memory.Portals;
+		if (!Portals[toShard]) Portals[toShard] = {};
+		if (!Portals[toShard][toRoom]) Portals[toShard][toRoom] = {};
+		if (!Portals[toShard][toRoom][fromShard]) Portals[toShard][toRoom][fromShard] = {};
+		if (!Portals[toShard][toRoom][fromShard][fromRoom]) Portals[toShard][toRoom][fromShard][fromRoom] = new Set();
+		global.infoSystem.Memory.Portals[toShard][toRoom][fromShard][fromRoom].add(portal);
+		return true;
+	}
+	_refreshInfoSystem() {
+		for (const key in Game.rooms) {
+			const room = Game.rooms[key];
+			if (!(room.name in global.infoSystem.Memory.Rooms)) {
+				const state = RoomState(room);
+				switch (state) {
+					case "controlled":
+						global.infoSystem.Memory.Rooms[room.name] = new controlledRoom(room) as controlledRoom;
+						global.infoSystem.Memory.Rooms.my.push(room.name);
+						break;
+					case "hostile":
+						global.infoSystem.Memory.Rooms[room.name] = new hostileRoom(room) as hostileRoom;
+						global.infoSystem.Memory.Rooms.hostile.push(room.name);
+						break;
+					case "neutral":
+						global.infoSystem.Memory.Rooms[room.name] = new neutralRoom(room) as neutralRoom;
+						global.infoSystem.Memory.Rooms.neutral.push(room.name);
+						break;
+					case "observed":
+						global.infoSystem.Memory.Rooms[room.name] = new observedRoom(room) as observedRoom;
+						global.infoSystem.Memory.Rooms.observed.push(room.name);
+						break;
+					case "unowned":
+						global.infoSystem.Memory.Rooms[room.name] = new unownedRoom(room) as unownedRoom;
+						global.infoSystem.Memory.Rooms.unowned.push(room.name);
+						break;
+					default:
+						break;
+				}
+			} else (global.infoSystem.Memory.Rooms[room.name] as RoomInfo).refresh();
+		}
+	}
+	run(): boolean {
+		this.instructions.refreshRoom();
+		return true;
+	}
+	constructor() {
+		this.instructions = {
+			addToPortal: this._addToPortal,
+			refreshRoom: this._refreshInfoSystem
+		}
 	}
 }
 
@@ -267,7 +288,7 @@ function CPortalInfo<T extends Constructor>(Base: T) {
 				// Register to `global` extension
 				let toShard = (portal.destination as { shard: string, room: string }).shard || Game.shard.name;
 				let toRoom = (portal.destination as RoomPosition).roomName || (portal.destination as { shard: string, room: string }).room;
-				global.infoSystem.instructions.addToPortal(toShard, toRoom, Game.shard.name, room.name, portal);
+				global.infoSystem.Processor.instructions.addToPortal(toShard, toRoom, Game.shard.name, room.name, portal);
 			}
 			return true;
 		}
