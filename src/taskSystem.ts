@@ -1,7 +1,5 @@
 import { hashObj, alphaLowerUpper, adjacentRooms, accumulateObj } from "utils/utils"
 import { TreeArray, TreeObject, TREE_VALUE_VARIABLE_NAME } from "dataStructure"
-// These imports should be deleted in the future.
-
 /**
  *
  * @param salt The reason behind setting this parameter is that sometimes I need to issue
@@ -44,6 +42,12 @@ function adjustReceivedStatus(receivedStatus: receivedInformation, role: string,
 function isReceivedValid(leftReceived: receivedInformation, role: string): boolean {
 	if (leftReceived[role]) return leftReceived[role] > 0;
 	else return leftReceived["any"] > 0;
+}
+
+function constructReceivedInformation(receivedInfo: receivedInformation, fillUp?: number) {
+	const ret: receivedInformation = { "any": 0 };
+	for (const role in receivedInfo) ret[role] = fillUp ? fillUp : receivedInfo[role];
+	return ret;
 }
 
 /**
@@ -108,14 +112,14 @@ export abstract class CTaskBase {
 	*/
 	targetRoom: string;
 	constructor(id: string, identity: TBasicTaskType | TMediumTaskType, data: { [propName: string]: any }, funcs: { run: (creeps?: Array<Creep | PowerCreep>) => TASK_CODE[], taskCallback?: TTaskCallback, taskEarlyTerminate?: (subject: Creep | PowerCreep, attachedRoom: string) => boolean }, settings = { maxReceived: { "any": 1 } }, options = {}) {
-		_.defaults(settings, { maxReceived: 1 });
+		_.defaults(settings, { maxReceived: { "any": 1 } });
 		this.id = id;
 		this.identity = identity;
 		this.data = data;
 		this.settings = {
 			received: {
-				max: settings.maxReceived,
-				current: { "any": 0 },
+				max: constructReceivedInformation(settings.maxReceived),
+				current: constructReceivedInformation(settings.maxReceived, 0),
 				left: settings.maxReceived
 			}
 		}
@@ -157,7 +161,7 @@ class taskIdTree extends TreeArray<taskId> {
 				if (ret) return ret;
 			}
 			return undefined;
-		}
+		};
 		return extractOne(node);
 	}
 	popOneFromLeaf(path: Array<string>, role: string): taskId | undefined {
@@ -187,7 +191,7 @@ class registeredTaskIdTree extends TreeArray<taskId> {
 			if (!subNodes) return;
 			for (let subNode of subNodes) extractAll(subNode);
 			return;
-		}
+		};
 		extractAll(node);
 		return ret;
 	}
@@ -229,9 +233,6 @@ class CTaskStorageUnit {
 	clearTaskIds(category: TTaskCategory, path: Array<string>): boolean {
 		return this._taskPool[category].clearLeaf(path);
 	}
-	/**
-	 * The setting of "subTaskType" parameter is the same with "getBasicTaskId".
-	 */
 	clearBasicTaskIds(home: string, taskType: BasicTaskType, subTaskType?: string | undefined): boolean {
 		if (subTaskType === undefined) return this._taskPool["basic"].clearAllFromNode([home, taskType]);
 		else return this._taskPool["basic"].clearAllFromNode([home, taskType, subTaskType]);
@@ -994,3 +995,5 @@ export class CTaskLoadUnit {
 		for (const powerCreep in Game.powerCreeps) this._registerCreep(Game.powerCreeps[powerCreep]);
 	}
 }
+
+export const statisticTaskLevel = new TreeLevel();

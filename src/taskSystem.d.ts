@@ -368,9 +368,6 @@ declare class CTaskStorageUnit {
 	popTaskId: (category: TTaskCategory, path: Array<string>, role: string) => taskId | undefined;
 	popAnyTaskId: (category: TTaskCategory, path: Array<string>, role: string) => taskId | undefined;
 	clearTaskIds: (category: TTaskCategory, path: Array<string>) => boolean;
-	/**
-	 * The setting of "subTaskType" parameter is the same with "getBasicTaskId".
-	 */
 	clearBasicTaskIds: (home: string, taskType: BasicTaskType, subTaskType?: string | undefined) => boolean;
 }
 /**

@@ -2,6 +2,7 @@
  * To start using Traveler, require it in main.js:
  * Example: var Traveler = require('Traveler.js');
  */
+/// <reference path="./prototype.Creep.travelTo.d.ts" />
 
 export class Traveler {
 
@@ -654,6 +655,8 @@ const STATE_DEST_Y = 5;
 const STATE_DEST_ROOMNAME = 6;
 
 // assigns a function to Creep.prototype: creep.travelTo(destination)
-Creep.prototype.travelTo = function (destination: RoomPosition | { pos: RoomPosition }, options?: TravelToOptions) {
-	return Traveler.travelTo(this, destination, options);
-};
+export function mountCreepTravelTo() {
+	Creep.prototype.travelTo = function (destination: RoomPosition | { pos: RoomPosition }, options?: TravelToOptions) {
+		return Traveler.travelTo(this, destination, options);
+	};
+}

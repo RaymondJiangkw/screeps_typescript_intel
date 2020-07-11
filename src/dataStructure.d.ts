@@ -6,22 +6,22 @@ declare abstract class PriorityQueue<T>{
 	/**
 	 * Place where data is stored.
 	 */
-	protected _mount?: object;
-	protected _array: Array<T>;
-	protected _length: number;
-	protected _parent: (index: number) => number | undefined;
-	protected _leftSon: (index: number) => number | undefined;
-	protected _rightSon: (index: number) => number | undefined;
-	public get: () => T | undefined;
-	public pop: () => T | undefined;
-	public add: (item: T) => boolean;
-	public empty: () => boolean;
-	protected _construct: () => boolean;
-	protected _shiftUp: (index: number) => boolean;
-	protected _shiftDown: (index: number) => boolean;
-	protected _swap: (index_A: number, index_B: number) => boolean;
+	_mount?: object;
+	_array: Array<T>;
+	_length: number;
+	_parent: (index: number) => number | undefined;
+	_leftSon: (index: number) => number | undefined;
+	_rightSon: (index: number) => number | undefined;
+	get: () => T | undefined;
+	pop: () => T | undefined;
+	add: (item: T) => boolean;
+	empty: () => boolean;
+	_construct: () => boolean;
+	_shiftUp: (index: number) => boolean;
+	_shiftDown: (index: number) => boolean;
+	_swap: (index_A: number, index_B: number) => boolean;
 	/** This function is abstract, which needs to be realized. */
-	protected _priority: (index: number) => number;
+	_priority: (index: number) => number;
 }
 
 /**
@@ -61,27 +61,27 @@ declare abstract class Tree<P, N extends ITreeNode<P>> {
 }
 
 declare class TreePriorityQueue<P, N extends PriorityQueue<P>> extends Tree<P, N> {
-	public addToLeaf: (item: P, path: Array<string>) => boolean;
-	public getFromLeaf: (path: Array<string>) => P | undefined;
-	public popFromLeaf: (path: Array<string>) => P | undefined;
+	addToLeaf: (item: P, path: Array<string>) => boolean;
+	getFromLeaf: (path: Array<string>) => P | undefined;
+	popFromLeaf: (path: Array<string>) => P | undefined;
 }
 
 declare class TreeArray<P> extends Tree<P, Array<P>> {
-	public pushToLeaf: (item: P, path: Array<string>) => boolean;
-	public popFromLeaf: (path: Array<string>) => P | undefined;
-	public assignToLeaf: (items: Array<P>, path: Array<string>) => boolean;
-	public getFromLeaf: (path: Array<string>) => P | undefined;
-	public getAllFromLeaf: (path: Array<string>) => P[];
-	public filterFromLeaf: (criterion: (item: P) => boolean, path: Array<string>) => P[];
-	public filterOneFromLeaf: (criterion: (item: P) => boolean, path: Array<string>) => P | undefined;
+	pushToLeaf: (item: P, path: Array<string>) => boolean;
+	popFromLeaf: (path: Array<string>) => P | undefined;
+	assignToLeaf: (items: Array<P>, path: Array<string>) => boolean;
+	getFromLeaf: (path: Array<string>) => P | undefined;
+	getAllFromLeaf: (path: Array<string>) => P[];
+	filterFromLeaf: (criterion: (item: P) => boolean, path: Array<string>) => P[];
+	filterOneFromLeaf: (criterion: (item: P) => boolean, path: Array<string>) => P | undefined;
 }
 declare class TreeObject<P> extends Tree<P, { [propName: string]: P }>{
 	/** This function can also be used to modify. */
-	public addToLeaf: (item: P, path: Array<string>, key: string) => boolean;
-	public assignToLeaf: (items: { [propName: string]: P }, path: Array<string>) => boolean;
-	public getFromLeaf: (path: Array<string>, key: string) => P | undefined;
-	public delFromLeaf: (path: Array<string>, key: string) => boolean;
-	public keys(path: Array<string>): string[];
-	public keys(node: ITreeStructure<{ [propName: string]: P }>): string[];
-	public keys(path_or_node: Array<string> | ITreeStructure<{ [propName: string]: P }>): string[];
+	addToLeaf: (item: P, path: Array<string>, key: string) => boolean;
+	assignToLeaf: (items: { [propName: string]: P }, path: Array<string>) => boolean;
+	getFromLeaf: (path: Array<string>, key: string) => P | undefined;
+	delFromLeaf: (path: Array<string>, key: string) => boolean;
+	keys(path: Array<string>): string[];
+	keys(node: ITreeStructure<{ [propName: string]: P }>): string[];
+	keys(path_or_node: Array<string> | ITreeStructure<{ [propName: string]: P }>): string[];
 }

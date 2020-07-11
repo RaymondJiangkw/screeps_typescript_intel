@@ -17,31 +17,31 @@ interface PriorityQueueMount<T> {
 	_array: Array<T>;
 }
 export abstract class PriorityQueue<T>{
-	public _mount?: PriorityQueueMount<T>;
-	protected _array: Array<T>;
-	protected _length: number;
-	protected abstract _priority(index: number): number;
-	protected _parent(index: number): number | undefined {
+	_mount?: PriorityQueueMount<T>;
+	_array: Array<T>;
+	_length: number;
+	abstract _priority(index: number): number;
+	_parent(index: number): number | undefined {
 		if (index === 0) return undefined;
 		if (index % 2 === 0) return index / 2 - 1;
 		else return (index - 1) / 2;
 	}
 	/** Swap will not check the legality of swapping operation. */
-	protected _swap(index_A: number, index_B: number): boolean {
+	_swap(index_A: number, index_B: number): boolean {
 		const tmp: T = this._array[index_A];
 		this._array[index_A] = this._array[index_B];
 		this._array[index_B] = tmp;
 		return true;
 	}
-	protected _leftSon(index: number): number | undefined {
+	_leftSon(index: number): number | undefined {
 		if (index * 2 + 1 >= this._length) return undefined;
 		return index * 2 + 1;
 	}
-	protected _rightSon(index: number): number | undefined {
+	_rightSon(index: number): number | undefined {
 		if (index * 2 + 2 >= this._length) return undefined;
 		return index * 2 + 2;
 	}
-	protected _shiftUp(index: number): boolean {
+	_shiftUp(index: number): boolean {
 		const parent = this._parent(index);
 		if (!parent) return true;
 		if (this._priority(index) < this._priority(parent)) {
@@ -50,7 +50,7 @@ export abstract class PriorityQueue<T>{
 		}
 		return true;
 	}
-	protected _shiftDown(index: number): boolean {
+	_shiftDown(index: number): boolean {
 		let min_son: number = index;
 		const left_son: number | undefined = this._leftSon(index);
 		const right_son: number | undefined = this._rightSon(index);
@@ -62,15 +62,15 @@ export abstract class PriorityQueue<T>{
 		}
 		return true;
 	}
-	protected _construct(): boolean {
+	_construct(): boolean {
 		for (let i = this._length - 2; i >= 0; i--) this._shiftDown(i);
 		return true;
 	}
-	public get(): T | undefined {
+	get(): T | undefined {
 		if (this._length > 0) return this._array[0];
 		else return undefined;
 	}
-	public pop(): T | undefined {
+	pop(): T | undefined {
 		if (this._length === 0) return undefined;
 		const ret: T = this.get() as T;
 		this._length--;
@@ -80,13 +80,13 @@ export abstract class PriorityQueue<T>{
 		}
 		return ret;
 	}
-	public add(item: T): boolean {
+	add(item: T): boolean {
 		this._array[this._length] = item;
 		this._length++;
 		this._shiftUp(this._length - 1);
 		return true;
 	}
-	public empty(): boolean {
+	empty(): boolean {
 		return this._length === 0;
 	}
 	/** @param mount This is allowed to be undefined by default, which means that all the data will be mounted upon itself. */
@@ -187,18 +187,18 @@ export abstract class Tree<P, N extends ITreeNode<P>> {
 }
 
 export class TreePriorityQueue<P, N extends PriorityQueue<P>> extends Tree<P, N> {
-	public addToLeaf(item: P, path: Array<string>): boolean {
+	addToLeaf(item: P, path: Array<string>): boolean {
 		let node = this._extractNode(path);
 		if (node === undefined) return false;
 		if (!node["mount_value_of_node"]) node["mount_value_of_node"] = new this._inner_link_class();
 		return node["mount_value_of_node"].add(item);
 	}
-	public getFromLeaf(path: Array<string>): P | undefined {
+	getFromLeaf(path: Array<string>): P | undefined {
 		let node = this._extractNode(path);
 		if (node === undefined || !node["mount_value_of_node"]) return undefined;
 		return node["mount_value_of_node"].get();
 	}
-	public popFromLeaf(path: Array<string>): P | undefined {
+	popFromLeaf(path: Array<string>): P | undefined {
 		let node = this._extractNode(path);
 		if (node === undefined || !node["mount_value_of_node"]) return undefined;
 		return node["mount_value_of_node"].pop();
@@ -206,40 +206,40 @@ export class TreePriorityQueue<P, N extends PriorityQueue<P>> extends Tree<P, N>
 }
 
 export class TreeArray<P> extends Tree<P, Array<P>> {
-	public pushToLeaf(item: P, path: Array<string>): boolean {
+	pushToLeaf(item: P, path: Array<string>): boolean {
 		let node = this._extractNode(path);
 		if (node === undefined) return false;
 		if (!node["mount_value_of_node"]) node["mount_value_of_node"] = new this._inner_link_class();
 		node["mount_value_of_node"].push(item);
 		return true;
 	}
-	public popFromLeaf(path: Array<string>): P | undefined {
+	popFromLeaf(path: Array<string>): P | undefined {
 		let node = this._extractNode(path);
 		if (node === undefined || !node["mount_value_of_node"]) return undefined;
 		return node["mount_value_of_node"].pop();
 	}
-	public getFromLeaf(path: Array<string>): P | undefined {
+	getFromLeaf(path: Array<string>): P | undefined {
 		let node = this._extractNode(path);
 		if (node === undefined || !node["mount_value_of_node"]) return undefined;
 		return node["mount_value_of_node"][node["mount_value_of_node"].length - 1];
 	}
-	public getAllFromLeaf(path: Array<string>): Array<P> {
+	getAllFromLeaf(path: Array<string>): Array<P> {
 		let node = this._extractNode(path);
 		if (node === undefined || !node["mount_value_of_node"]) return [];
 		return node["mount_value_of_node"];
 	}
-	public filterFromLeaf(criterion: (item: P) => boolean, path: Array<string>): P[] {
+	filterFromLeaf(criterion: (item: P) => boolean, path: Array<string>): P[] {
 		let node = this._extractNode(path);
 		if (node === undefined || !node["mount_value_of_node"]) return [];
 		return _.filter(node["mount_value_of_node"], criterion);
 	}
-	public filterOneFromLeaf(criterion: (item: P) => boolean, path: Array<string>): P | undefined {
+	filterOneFromLeaf(criterion: (item: P) => boolean, path: Array<string>): P | undefined {
 		let node = this._extractNode(path);
 		if (node === undefined || !node["mount_value_of_node"]) return undefined;
 		for (let item of node["mount_value_of_node"]) if (criterion(item)) return item;
 		return undefined;
 	}
-	public assignToLeaf(items: Array<P>, path: Array<string>): boolean {
+	assignToLeaf(items: Array<P>, path: Array<string>): boolean {
 		let node = this._extractNode(path);
 		if (node === undefined) return false;
 		node["mount_value_of_node"] = items;
@@ -252,33 +252,33 @@ export class TreeArray<P> extends Tree<P, Array<P>> {
 
 export class TreeObject<P> extends Tree<P, { [propName: string]: P }>{
 	/** This function can also be used to modify. */
-	public addToLeaf(item: P, path: Array<string>, key: string): boolean {
+	addToLeaf(item: P, path: Array<string>, key: string): boolean {
 		let node = this._extractNode(path);
 		if (node === undefined) return false;
 		if (!node["mount_value_of_node"]) node["mount_value_of_node"] = new this._inner_link_class();
 		node["mount_value_of_node"][key] = item;
 		return true;
 	}
-	public getFromLeaf(path: Array<string>, key: string): P | undefined {
+	getFromLeaf(path: Array<string>, key: string): P | undefined {
 		let node = this._extractNode(path);
 		if (node === undefined || !node["mount_value_of_node"]) return undefined;
 		return node["mount_value_of_node"][key];
 	}
-	public delFromLeaf(path: Array<string>, key: string): boolean {
+	delFromLeaf(path: Array<string>, key: string): boolean {
 		let node = this._extractNode(path);
 		if (node === undefined || !node["mount_value_of_node"] || !node["mount_value_of_node"][key]) return false;
 		delete node['mount_value_of_node'][key];
 		return true;
 	}
-	public assignToLeaf(items: { [propName: string]: P }, path: Array<string>): boolean {
+	assignToLeaf(items: { [propName: string]: P }, path: Array<string>): boolean {
 		let node = this._extractNode(path);
 		if (node === undefined) return false;
 		node["mount_value_of_node"] = items;
 		return true;
 	}
-	public keys(path: Array<string>): string[];
-	public keys(node: ITreeStructure<{ [propName: string]: P }>): string[];
-	public keys(path_or_node: Array<string> | ITreeStructure<{ [propName: string]: P }>): string[] {
+	keys(path: Array<string>): string[];
+	keys(node: ITreeStructure<{ [propName: string]: P }>): string[];
+	keys(path_or_node: Array<string> | ITreeStructure<{ [propName: string]: P }>): string[] {
 		let node: ITreeStructure<{ [propName: string]: P }> | undefined = undefined;
 		if (Array.isArray(path_or_node)) {
 			node = this._extractNode(path_or_node);
