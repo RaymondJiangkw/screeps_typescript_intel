@@ -56,7 +56,9 @@ $ rollup -cw --environment DEST:main
 ```
 ## Documentation
 
-*TODO*
+- [Introduction](./docs/introduction.md)
+- [Main Loop](./docs/main_loop.md)
+- [Information System](./docs/infoSystem.md)
 
 ## Log
 
