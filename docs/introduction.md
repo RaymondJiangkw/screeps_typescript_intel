@@ -1,6 +1,6 @@
 ## Design
 
-*Intelligence* is currently designed to be composed of `5` systems, `taskSystem`, `spawnSystem`, [`infoSystem`](infoSystem.md), `supplyDemandSystem`*(under development)* and `structureSystem`*(under development)*.
+*Intelligence* is currently designed to be composed of `5` systems, `taskSystem`, [`spawnSystem`](spawnSystem.md), [`infoSystem`](infoSystem.md), `supplyDemandSystem`*(under development)* and `structureSystem`*(under development)*.
 ### InfoSystem
 #### Function
 > Collect information about all visible rooms for further usage.

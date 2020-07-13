@@ -1,21 +1,20 @@
 ## Declaration
 ### `global` Declaration
 ```typescript
-	infoSystem: {
-			Memory: {
-				Portals: {[shard: string]: { [roomName: string]: { [shard: string]: { [from: string]: Set<StructurePortal> } } }
-				}
-				Rooms: {
-					my: string[],
-					hostile: string[],
-					observed: string[],
-					neutral: string[],
-					unowned: string[],
-					[roomName: string]: RoomInfo | string[];
-				}
-			}
-			Processor: InfoProcessor
+infoSystem: {
+	Memory: {
+		Portals: {[shard: string]: { [roomName: string]: { [shard: string]: { [from: string]: Set<StructurePortal> } } }}
+		Rooms: {
+			my: string[],
+			hostile: string[],
+			observed: string[],
+			neutral: string[],
+			unowned: string[],
+			[roomName: string]: RoomInfo | string[];
 		}
+	}
+	Processor: InfoProcessor
+}
 ```
 `Memory` is used to store the data of `Portals` in all visible or visible-in-the-past `rooms` and `information` of every visible or visible-in-the-past `room` as *key(roomName)-value(RoomInfo)* pair in `Memory.Rooms`. `Rooms.my`, `Rooms.hostile` and etc. contain a list of such *roomNames*, which belong to its specific type.
 
@@ -26,17 +25,17 @@
 ### `Information` Declaration
 #### CResourceInfo *Class*
 ```typescript
-		resources: {
-			[propName: string]: {
-				[STRUCTURE_STORAGE]?: number;
-				[STRUCTURE_TERMINAL]?: number;
-				[STRUCTURE_FACTORY]?: number;
-				[STRUCTURE_CONTAINER]?: number;
-				[STRUCTURE_LAB]?: number;
-			};
-		};
-		_collectResourceInfo(room: Room): boolean;
-		_refreshResourceInfo(room: Room): boolean;
+resources: {
+	[propName: string]: {
+		[STRUCTURE_STORAGE]?: number;
+		[STRUCTURE_TERMINAL]?: number;
+		[STRUCTURE_FACTORY]?: number;
+		[STRUCTURE_CONTAINER]?: number;
+		[STRUCTURE_LAB]?: number;
+	};
+};
+_collectResourceInfo(room: Room): boolean;
+_refreshResourceInfo(room: Room): boolean;
 ```
 Data:
 - `resources` is used to store the data of `quantity` of  every available`resources` in the specific `room`.
@@ -48,50 +47,50 @@ The following `Information` *Classes* basically follow the same strategy.
 
 #### CEconomyInfo *Class*
 ```typescript
-		economy: {
-			[RESOURCE_ENERGY]: {
-				"available": {
-					"current": number;
-					"total": number;
-				};
-				/**
-				 * Total Energy Stored / energyAvailableCapacity.
-				 * Number of times to fill in completely.
-				 */
-				"storage": {
-					[STRUCTURE_STORAGE]?: number;
-					[STRUCTURE_TERMINAL]?: number;
-					[STRUCTURE_FACTORY]?: number;
-				};
-			};
+economy: {
+	[RESOURCE_ENERGY]: {
+		"available": {
+			"current": number;
+			"total": number;
 		};
-		_collectEconomyInfo(room: Room): boolean;
-		_refreshEconomyInfo(room: Room): boolean;
+		/**
+		 * Total Energy Stored / energyAvailableCapacity.
+		 * Number of times to fill in completely.
+		 */
+		"storage": {
+			[STRUCTURE_STORAGE]?: number;
+			[STRUCTURE_TERMINAL]?: number;
+			[STRUCTURE_FACTORY]?: number;
+		};
+	};
+};
+_collectEconomyInfo(room: Room): boolean;
+_refreshEconomyInfo(room: Room): boolean;
 ```
 #### CStructureProdInfo *Class*
 ```typescript
-		structures!: {
-			[STRUCTURE_CONTAINER]: {
-				"input": Array<StructureContainer>,
-				"output": Array<StructureContainer>,
-				"map": { [id: string]: Structure },
-				/** Could be used as 'input' or 'output' */
-				"central": Array<StructureContainer>
-			},
-			[STRUCTURE_LINK]: {
-				"input": Array<StructureLink>,
-				"output": Array<StructureLink>,
-				"map": { [id: string]: Structure },
-				/** Could be used as 'input' or 'output' */
-				"central": Array<StructureLink>
-			},
-			[STRUCTURE_LAB]: {
-				"input": Array<StructureLab>,
-				"output": Array<StructureLab>,
-			},
-		}
-		_collectStructureProdInfo(room: Room): boolean;
-		_refreshStructureProdInfo(room: Room): boolean;
+structures: {
+	[STRUCTURE_CONTAINER]: {
+		"input": Array<StructureContainer>,
+		"output": Array<StructureContainer>,
+		"map": { [id: string]: Structure },
+		/** Could be used as 'input' or 'output' */
+		"central": Array<StructureContainer>
+	},
+	[STRUCTURE_LINK]: {
+		"input": Array<StructureLink>,
+		"output": Array<StructureLink>,
+		"map": { [id: string]: Structure },
+		/** Could be used as 'input' or 'output' */
+		"central": Array<StructureLink>
+	},
+	[STRUCTURE_LAB]: {
+		"input": Array<StructureLab>,
+		"output": Array<StructureLab>,
+	},
+}
+_collectStructureProdInfo(room: Room): boolean;
+_refreshStructureProdInfo(room: Room): boolean;
 ```
 **Notice**:
 - Container
@@ -110,41 +109,41 @@ The following `Information` *Classes* basically follow the same strategy.
 
 #### CDefenseInfo *Class*
 ```typescript
-	defense!: {
-			[STRUCTURE_TOWER]: {
-				status: "repair" | "attack" | "heal" | "idle",
-				refillTowers: Array<StructureTower>
-			}
+defense: {
+		[STRUCTURE_TOWER]: {
+			status: "repair" | "attack" | "heal" | "idle",
+			refillTowers: Array<StructureTower>
 		}
-		_collectDefenseInfo(room: Room): boolean;
-		_refreshDefenseInfo(room: Room): boolean;
+	}
+	_collectDefenseInfo(room: Room): boolean;
+	_refreshDefenseInfo(room: Room): boolean;
 ```
 **Notice**:
 - `refillTowers` are those whose `energy/capacity` is lower than a ratio defined as `0.5`.
 #### CPortalnfo *Class*
 ```typescript
-		portals: Array<{ portal: StructurePortal, desti: RoomPosition | { shard: string, room: string } }>
-		_collectPortalInfo(room: Room): boolean;
-		_refreshPortalInfo(room: Room): boolean;
+portals: Array<{ portal: StructurePortal, desti: RoomPosition | { shard: string, room: string } }>
+_collectPortalInfo(room: Room): boolean;
+_refreshPortalInfo(room: Room): boolean;
 ```
 #### CControllerInfo *Class*
 ```typescript
-		controller!: {
-			level: number,
-			downgradeTick: number | null,
-			reservedTick: number | null,
-		}
-		_collectControllerInfo(room: Room): boolean;
-		_refreshControllerInfo(room: Room): boolean;
+controller: {
+	level: number,
+	downgradeTick: number | null,
+	reservedTick: number | null,
+}
+_collectControllerInfo(room: Room): boolean;
+_refreshControllerInfo(room: Room): boolean;
 ```
 #### CCreepInfo *Class*
 ```typescript
-		creeps: {
-			live: Array<creepEvaluation>,
-			spawning?: Array<creepEvaluation>
-		}
-		_collectCreepInfo(room: Room): boolean;
-		_refreshCreepInfo(room: Room): boolean;
+creeps: {
+	live: Array<creepEvaluation>,
+	spawning?: Array<creepEvaluation>
+}
+_collectCreepInfo(room: Room): boolean;
+_refreshCreepInfo(room: Room): boolean;
 ```
 **Notice**:
 - *spawning* information is currently unable to get due to the restriction of `API`.
@@ -152,10 +151,10 @@ The following `Information` *Classes* basically follow the same strategy.
 ### `Room` Declaration
 #### RoomBase *class*
 ```typescript
-	room: Room;
-	_callInternalMethod(key: string): boolean;
-	constructor(room: Room);
-	refresh();
+room: Room;
+_callInternalMethod(key: string): boolean;
+constructor(room: Room);
+refresh();
 ```
 - *constructor* will mount *room* to *this.room* for easy and integrated access and call all the *collect* member functions, such as *_collectCreepInfo*.
 - *refresh* will call all the *refresh* member functions such as *_refreshCreepInfo*.
@@ -172,11 +171,11 @@ It extends *CCreepInfo*.
 It extends *CResourceInfo, CEconomyInfo, CControllerInfo, CCreepInfo*.
 ### `Processor` Declaration
 ```typescript
-	instructions: {
-		addToPortal: (toShard: string, toRoom: string, fromShard: string, fromRoom: string, portal: StructurePortal) => boolean;
-		refreshRoom: () => void;
-	}
-	run(): boolean;
+instructions: {
+	addToPortal: (toShard: string, toRoom: string, fromShard: string, fromRoom: string, portal: StructurePortal) => boolean;
+	refreshRoom: () => void;
+}
+run(): boolean;
 ```
 - `instructions` is a set of functions for external calling.
     - `addToPortal`, adding information of *Portal* to the `global.infoSystem`.

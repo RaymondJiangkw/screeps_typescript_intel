@@ -10,6 +10,30 @@ export const colors: { [name in Colors]: string } = {
 	blue: '#8dc5e3'
 }
 
+/**
+ * 在绘制控制台信息时默认的信息类型
+ * {@link infoType}
+ */
+export const typeInfo: Array<infoType> = ["debug", "warning", "notice"];
+
+/**
+ * 在绘制控制台信息时默认的颜色
+ */
+export const colorInfo: { [name in infoType]: Colors | null } = {
+	"debug": null,
+	"warning": "yellow",
+	"notice": "red"
+}
+
+/**
+ * 在绘制控制台信息时默认的等级
+ */
+export const levelInfo: { [name in infoType]: number } = {
+	"debug": 1,
+	"warning": 0,
+	"notice": 100
+}
+
 export const bodypartBaseData: { [bodypart in BodyPartConstant]: { [behavior: string]: number | number[] } } = {
 	"move": {
 		"fatigue": 2 // Points.

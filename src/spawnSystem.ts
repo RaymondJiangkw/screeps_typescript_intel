@@ -1,5 +1,6 @@
 /// <reference path="./mount/prototype.Room.Creeps.d.ts" />
 import { spawnInterval } from "./utils/settings"
+import { scaleBodyParts, log } from "./utils/utils"
 /**
  * Notice that: every used roles should be registered!
  * Otherwise, it may lead to many errors.
@@ -64,16 +65,18 @@ export class spawnProcessor {
 			const room = Game.rooms[roomName];
 			const spawnOrder = this.instructions.getSpawnOrder(room);
 			for (const role of spawnOrder) {
-				const bodies = this.instructions.getFromSpawn(roomName, role);
+				let bodies = this.instructions.getFromSpawn(roomName, role);
 				if (!bodies) continue;
+				bodies = scaleBodyParts(bodies, room.energyAvailable);
 				let spawnSuccessful = false;
 				for (const spawn of Game.rooms[roomName].spawns) {
 					if (spawn.spawning || (spawn.memory.lastSpawningTick && Game.time - spawn.memory.lastSpawningTick < spawnInterval)) continue;
 					const ret = spawn.spawnCreep(bodies, `${Game.shard.name}_${roomName}_${role}_${Game.time}`, { memory: { role: role, taskId: null, home: roomName, working: false, earlyTerminateTasks: [] } });
 					if (ret === OK) {
 						spawnSuccessful = true;
+						spawn.memory.lastSpawningTick = Game.time;
 						break;
-					}
+					} else log("Spawn Failure!", ["warning", roomName]);
 				}
 				if (spawnSuccessful) break;
 			}

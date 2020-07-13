@@ -13,7 +13,8 @@ import { mountCreepTravelTo } from "./mount/prototype.Creep.travelTo";
 import taskSystemInit from "./taskSystem/mount";
 import spawnSystemInit from "./spawnSystem/mount";
 export default function () {
-	log("Remount Finish", ["global", "mount"], "red");
+	log("Remount Finish", ["notice", "global"]);
+	initMemory();
 	mountRoomCreeps();
 	mountRoomResources();
 	mountRoomStructures();
@@ -50,4 +51,8 @@ export default function () {
 	};
 	taskSystemInit();
 	spawnSystemInit();
+}
+
+function initMemory() {
+	if (!Memory.settings) Memory.settings = { logLevel: 0 };
 }

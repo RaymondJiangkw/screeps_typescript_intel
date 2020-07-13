@@ -11,6 +11,12 @@
 
 type Colors = 'green' | 'blue' | 'yellow' | 'red';
 
+/**
+ * 本项目中出现的信息类型
+ * {@link settings.typeInfo}
+ */
+type infoType = "debug" | "warning" | "notice";
+
 /** The Role of Creeps */
 type CreepRole = "harvester" | "upgrader" | "transferer" | "weak_transferer" | // This is the 'transferer' which only takes the job of central transfering
 	"worker" | "repairer";
@@ -52,7 +58,9 @@ interface SpawnMemory {
 	lastSpawningTick: number;
 }
 interface Memory {
-
+	settings: {
+		logLevel: number
+	}
 }
 
 
