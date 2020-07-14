@@ -10,17 +10,19 @@ export class spawnProcessor {
 		bodyparts: { [role in CreepRole]?: (room: Room) => Array<BodyPartConstant> };
 		/** True, indicates needing to spawn more. */
 		numComparison: { [role in CreepRole]?: (expected: number, current: number, room: Room) => boolean };
+		acceptedTasks: { [role in CreepRole]?: Array<[TTaskCategory, BasicTaskType | MediumTaskType] | [TTaskCategory, BasicTaskType | MediumTaskType, string[]]> };
 	}
 	instructions: {
 		scanCurrentCreeps(room: Room): boolean;
 		modifyExpectedCreeps(roomName: string, role: CreepRole, modify: number): boolean;
 		getSpawnOrder(room: Room): Array<CreepRole>;
 		getFromSpawn(roomName: string, role: CreepRole): Array<BodyPartConstant> | undefined;
-		registerCreepRole(role: CreepRole, bodyparts: (room: Room) => Array<BodyPartConstant>, numComparison: (expected: number, current: number, room: Room) => boolean): boolean;
+		registerCreepRole(role: CreepRole, acceptedTasks: Array<[TTaskCategory, BasicTaskType | MediumTaskType] | [TTaskCategory, BasicTaskType | MediumTaskType, string[]]>, bodyparts: (room: Room) => Array<BodyPartConstant>, numComparison: (expected: number, current: number, room: Room) => boolean): boolean;
 	}
-	_registerCreepRole(role: CreepRole, bodyparts: (room: Room) => Array<BodyPartConstant>, numComparison: (expected: number, current: number, room: Room) => boolean): boolean {
+	_registerCreepRole(role: CreepRole, acceptedTasks: Array<[TTaskCategory, BasicTaskType | MediumTaskType] | [TTaskCategory, BasicTaskType | MediumTaskType, string[]]>, bodyparts: (room: Room) => Array<BodyPartConstant>, numComparison: (expected: number, current: number, room: Room) => boolean): boolean {
 		this.data.bodyparts[role] = bodyparts;
 		this.data.numComparison[role] = numComparison;
+		this.data.acceptedTasks[role] = acceptedTasks;
 		return true;
 	}
 	_modifyExpectedCreeps(roomName: string, role: CreepRole, modify: number): boolean {
@@ -71,10 +73,12 @@ export class spawnProcessor {
 				let spawnSuccessful = false;
 				for (const spawn of Game.rooms[roomName].spawns) {
 					if (spawn.spawning || (spawn.memory.lastSpawningTick && Game.time - spawn.memory.lastSpawningTick < spawnInterval)) continue;
-					const ret = spawn.spawnCreep(bodies, `${Game.shard.name}_${roomName}_${role}_${Game.time}`, { memory: { role: role, taskId: null, home: roomName, working: false, earlyTerminateTasks: [] } });
+					const creepName = `${Game.shard.name}_${roomName}_${role}_${Game.time}`;
+					const ret = spawn.spawnCreep(bodies, creepName, { memory: { role: role, taskId: null, home: roomName, working: false, earlyTerminateTasks: [] } });
 					if (ret === OK) {
 						spawnSuccessful = true;
 						spawn.memory.lastSpawningTick = Game.time;
+						global.tmp.newSpawnedCreeps.push(creepName);
 						break;
 					} else log("Spawn Failure!", ["warning", roomName]);
 				}
@@ -83,7 +87,7 @@ export class spawnProcessor {
 		});
 	}
 	constructor() {
-		this.data = { bodyparts: {}, numComparison: {} };
+		this.data = { bodyparts: {}, numComparison: {}, acceptedTasks: {} };
 		this.instructions = {
 			getFromSpawn: this._getFromSpawn,
 			getSpawnOrder: this._getSpawnOrder,

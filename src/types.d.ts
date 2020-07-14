@@ -27,14 +27,14 @@ interface Creep {
 	 * @todo This should take account of {@link CreepMemory.earlyTerminateTasks}
 	 * @returns ([taskCategory,taskType] | [taskCategory,taskType,[subTaskType_1,subTaskType_2...]])[]
 	 */
-	acceptTasks: () => Array<[TTaskCategory, BasicTaskType | MediumTaskType] | [TTaskCategory, BasicTaskType | MediumTaskType, string[]]>;
+	acceptTasks(): Array<[TTaskCategory, BasicTaskType | MediumTaskType] | [TTaskCategory, BasicTaskType | MediumTaskType, string[]]>;
 }
 interface PowerCreep {
 	/**
 	 * @todo This should take account of {@link PowerCreepMemory.earlyTerminateTasks}
 	 * @returns ([taskCategory,taskType] | [taskCategory,taskType,[subTaskType_1,subTaskType_2...]])[]
 	 */
-	acceptTasks: () => Array<[TTaskCategory, BasicTaskType | MediumTaskType] | [TTaskCategory, BasicTaskType | MediumTaskType, string[]]>;
+	acceptTasks(): Array<[TTaskCategory, BasicTaskType | MediumTaskType] | [TTaskCategory, BasicTaskType | MediumTaskType, string[]]>;
 }
 
 // memory extension
@@ -106,6 +106,11 @@ declare namespace NodeJS {
 				}
 			}
 			Processor: spawnProcessor
+		}
+		/** Temporary Data Collected from Last Tick */
+		tmp: {
+			/** Name of newly spawned Creep or PowerCreep */
+			newSpawnedCreeps: Array<string>
 		}
 	}
 }

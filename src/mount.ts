@@ -10,6 +10,7 @@ import { mountRoomCreeps } from "./mount/prototype.Room.Creeps"
 import { mountRoomResources } from "./mount/prototype.Room.resources";
 import { mountRoomStructures } from "./mount/prototype.Room.structures";
 import { mountCreepTravelTo } from "./mount/prototype.Creep.travelTo";
+import { mountCreepExtensions } from "./mount/prototype.Creep.extensions";
 import taskSystemInit from "./taskSystem/mount";
 import spawnSystemInit from "./spawnSystem/mount";
 export default function () {
@@ -19,6 +20,7 @@ export default function () {
 	mountRoomResources();
 	mountRoomStructures();
 	mountCreepTravelTo();
+	mountCreepExtensions();
 	global.taskSystem = {
 		Memory: {
 			WareHouse: {},
@@ -51,6 +53,9 @@ export default function () {
 	};
 	taskSystemInit();
 	spawnSystemInit();
+	global.tmp = {
+		newSpawnedCreeps: []
+	};
 }
 
 function initMemory() {

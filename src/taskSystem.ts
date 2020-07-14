@@ -693,7 +693,7 @@ export class CTaskControlUnit {
 			}
 		}
 		instructions: {
-			/** Iterate Idle Creeps to get Task and Run the Scheduler and All registered Tasks based on the situation of Level. */
+			/** Run the Scheduler and All registered Tasks based on the situation of Level. */
 			run: () => boolean;
 			/** These instructions are called outside the loop. */
 			addToScheduler: (item: TAdvancedTaskType) => boolean;
@@ -757,6 +757,7 @@ export class CTaskControlUnit {
 		return true;
 	}
 	_RunRun(): boolean {
+		// Run Tasks for each Room
 		const Processor = global.taskSystem.Processor;
 		const controlledRooms = global.infoSystem.Memory.Rooms.my;
 		const staticLevel = this.Run.settings.level.statistic;
@@ -786,6 +787,14 @@ export class CTaskControlUnit {
 						}
 					}
 				}
+			}
+		}
+		// Run Scheduled Tasks
+		/** @todo To be stopped by level */
+		if (this.Run.settings.switch.scheduler) {
+			for (const interval in this.Run.data.scheduler) {
+				if (Game.time % Number(interval) !== 0) continue;
+				for (const func of this.Run.data.scheduler[interval]) func.run();
 			}
 		}
 		return true;

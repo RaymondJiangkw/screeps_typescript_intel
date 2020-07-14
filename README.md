@@ -60,6 +60,7 @@ $ rollup -cw --environment DEST:main
 - [Main Loop](./docs/main_loop.md)
 - [Information System](./docs/infoSystem.md)
 - [Spawning System](./docs/spawnSystem.md)
+- [Task System](./docs/taskSystem.md)
 
 ## Log
 

@@ -83,6 +83,7 @@ interface ITaskTypeDecision<TtaskType, TsubTaskType, Tinterval> extends ITaskTyp
 	 * Interval of Making Decision or Reevaluating Decision.
 	 */
 	interval: Tinterval;
+	run: () => boolean;
 }
 
 interface receivedInformation {
@@ -590,7 +591,7 @@ declare class CTaskControlUnit {
 			}
 		}
 		instructions: {
-			/** Iterate Idle Creeps to get Task and Run the Scheduler and All registered Tasks based on the situation of Level. */
+			/** Run the Scheduler and All registered Tasks based on the situation of Level. */
 			run: () => boolean;
 			/** These instructions are called outside the loop. */
 			addToScheduler: (item: TAdvancedTaskType) => boolean;

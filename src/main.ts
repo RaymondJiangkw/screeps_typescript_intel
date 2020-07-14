@@ -6,8 +6,6 @@ mount();
 export const loop = ErrorMapper.wrapLoop(() => {
 	// Collect Available Information
 	global.infoSystem.Processor.run();
-	// Collect Current Creep Info
-	global.spawnSystem.Processor.run();
 	// Automatically delete memory of missing creeps
 	for (const name in Memory.creeps) {
 		if (!(name in Game.creeps)) {
@@ -15,6 +13,14 @@ export const loop = ErrorMapper.wrapLoop(() => {
 			delete Memory.creeps[name];
 		}
 	};
+	// Add newly spawned Creeps | PowerCreeps to taskSystem
+	for (const name of global.tmp.newSpawnedCreeps) {
+		if (Game.creeps[name]) global.taskSystem.Loader.instructions.registerCreep(Game.creeps[name]);
+		else if (Game.powerCreeps[name]) global.taskSystem.Loader.instructions.registerCreep(Game.powerCreeps[name]);
+	}
+	global.tmp.newSpawnedCreeps = [];
+	// Collect Current Creep Info
+	global.spawnSystem.Processor.run();
 	// Run the Main Program
 	global.taskSystem.Controller.run();
 	// Spawn the Creeps
