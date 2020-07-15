@@ -24,35 +24,39 @@ They bears the structure of *roomName->role->`number`*.
 
 ### `Processor` Declaration
 ```typescript
-data: {
-	bodyparts: { [role in CreepRole]?: (room: Room) => Array<BodyPartConstant> };
-	/** True, indicates needing to spawn more. */
-	numComparison: { [role in CreepRole]?: (expected: number, current: number, room: Room) => boolean };
+declare class spawnProcessor {
+	data: {
+		bodyparts: { [role in CreepRole]?: (room: Room) => Array<BodyPartConstant> };
+		/** True, indicates needing to spawn more. */
+		numComparison: { [role in CreepRole]?: (expected: number, current: number, room: Room) => boolean };
+		acceptedTasks: { [role in CreepRole]?: Array<[TTaskCategory, BasicTaskType | MediumTaskType] | [TTaskCategory, BasicTaskType | MediumTaskType, string[]]> };
+		roleSpawnPriority: { [role in CreepRole]?: (room: Room) => number };
+	}
+	instructions: {
+		scanCurrentCreeps(room: Room): boolean;
+		modifyExpectedCreeps(roomName: string, role: CreepRole, modify: number): boolean;
+		getSpawnOrder(room: Room): Array<CreepRole>;
+		getFromSpawn(roomName: string, role: CreepRole): Array<BodyPartConstant> | undefined;
+		registerCreepRole(role: CreepRole, information: { acceptedTasks: Array<[TTaskCategory, BasicTaskType | MediumTaskType] | [TTaskCategory, BasicTaskType | MediumTaskType, string[]]>, bodyparts: (room: Room) => Array<BodyPartConstant>, numComparison: (expected: number, current: number, room: Room) => boolean, roleSpawnPriority: (room: Room) => number }): boolean;
+	}
+	_getBodyParts(roomName: string, role: CreepRole): Array<BodyPartConstant>;
+	run(): void;
+	spawn(): void;
 }
-instructions: {
-	scanCurrentCreeps(room: Room): boolean;
-	modifyExpectedCreeps(roomName: string, role: CreepRole, modify: number): boolean;
-	getSpawnOrder(room: Room): Array<CreepRole>;
-	getFromSpawn(roomName: string, role: CreepRole): Array<BodyPartConstant> | undefined;
-	registerCreepRole(role: CreepRole, bodyparts: (room: Room) => Array<BodyPartConstant>, numComparison: (expected: number, current: number, room: Room) => boolean): boolean;
-}
-_getBodyParts(roomName: string, role: CreepRole): Array<BodyPartConstant>;
-run(): void;
-spawn(): void;
 ```
 - `instruction` is a set of functions for external calling.
 	- `scanCurrentCreeps`, scanning the **number** of all the creeps belonging to one specific room, decided by `CreepMemory.home` and grouped by `CreepMemory.role`, and store the data in `global.spawnSystem.Memory.current`.
 	- `modifyExpectedCreeps`, modifying the data stored in `global.spawnSystem.Memory.expected` by `modify`, given `roomName` and `role`.
 	- `getSpawnOrder`, giving the spawning order of roles of one specific room. This function helps dynamically change the spawning order based on the status of room.
 	- `getFromSpawn`, giving the bodyparts of a `role` in one specific room.
-	- `registerCreepRole`, registering a role by storing its *bodypart-deciding* function and *expected-current-comparison* function for further usage.
-- `data` stores the *bodypart-deciding* function and *expected-current-comparison* function of all the registered roles.
+	- `registerCreepRole`, registering a role by storing its *bodypart-deciding* function, *expected-current-comparison* function, *get-accepted-tasks* function and *get-role-spawned-priority* function for further usage.
+- `data` stores the *bodypart-deciding* function, *expected-current-comparison* function, *get-accepted-tasks* function and *get-role-spawned-priority* function of all the registered roles.
 - `run`, function to be called by [`main_loop`](main_loop) to refresh/gather `current` *creepsNum* information of all *controlled room*.
 - `spawn`, function to be called by [`main_loop`](main_loop) to iterate over every controlled room to check whether there is a need to spawn creep. And if so, spawn it and add its name to `global.tmp.newSpawnedCreeps` for being registered at next tick. However, there are two small mechanisms here:
 	- For each `spawn`, there is a lock time or *interval* between two *spawning* intentions, specified by `settings.spawnInterval`. The reason behind it is to consider the time for `transferers` to refill `spawns` and `extensions` with `energy`. However, this can be a lag in certain situations, such as *spawning soldiers for war* or *using `PWR_OPERATE_SPAWN`*. This can be solved by designing the layout for `room` cleverly and setting `spawnInterval` in `settings` as `0`.
 	- Considering that sometimes `availableEnergy` is not enough to spawn the `creep` fully, there is a `ratio-reduction` mechanism to scale the *bodyparts* to meet current `availableEnergy`. The reason behind it is to reduce the burden for *bodypart-deciding* function, so that they do not need to worry whether `availableEnergy` is enough to spawn. For example, when `spawning` *upgrader*, `bodypart-deciding` function only needs to consider whether the `energy` stored in `storage` and etc. is enough.
 ## Running
-0. Outside the `main_loop`, all `roles` are `registered` through `Processor.instructions.registerCreepRole`. *(TODO: During `register`, modify corresponding `spawnOrder`)*
+0. Outside the `main_loop`, all `roles` are `registered` through `Processor.instructions.registerCreepRole`.
 1. `main_loop` calls `global.spawnSystem.Processor.run()`.
 2. `Processor` iterates all controlled `roomNames` stored in `global.infoSystem.Memory.Rooms.my` to call `instructions.scanCurrentCreeps` and initialize `global.spawnSystem.Memory.expected[roomName]` as `{}`, if not exists.
 	- `scanCurrentCreeps` sets `global.spawnSystem.Memory.current[room.name]` as `{}` to be empty. Then iterate over all `creeps` belonging to this room by `room.creeps` to record *real number* of `creeps` for all *available* roles.

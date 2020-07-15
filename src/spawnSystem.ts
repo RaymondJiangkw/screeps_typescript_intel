@@ -11,18 +11,20 @@ export class spawnProcessor {
 		/** True, indicates needing to spawn more. */
 		numComparison: { [role in CreepRole]?: (expected: number, current: number, room: Room) => boolean };
 		acceptedTasks: { [role in CreepRole]?: Array<[TTaskCategory, BasicTaskType | MediumTaskType] | [TTaskCategory, BasicTaskType | MediumTaskType, string[]]> };
+		roleSpawnPriority: { [role in CreepRole]?: (room: Room) => number };
 	}
 	instructions: {
 		scanCurrentCreeps(room: Room): boolean;
 		modifyExpectedCreeps(roomName: string, role: CreepRole, modify: number): boolean;
 		getSpawnOrder(room: Room): Array<CreepRole>;
 		getFromSpawn(roomName: string, role: CreepRole): Array<BodyPartConstant> | undefined;
-		registerCreepRole(role: CreepRole, acceptedTasks: Array<[TTaskCategory, BasicTaskType | MediumTaskType] | [TTaskCategory, BasicTaskType | MediumTaskType, string[]]>, bodyparts: (room: Room) => Array<BodyPartConstant>, numComparison: (expected: number, current: number, room: Room) => boolean): boolean;
+		registerCreepRole(role: CreepRole, information: { acceptedTasks: Array<[TTaskCategory, BasicTaskType | MediumTaskType] | [TTaskCategory, BasicTaskType | MediumTaskType, string[]]>, bodyparts: (room: Room) => Array<BodyPartConstant>, numComparison: (expected: number, current: number, room: Room) => boolean, roleSpawnPriority: (room: Room) => number }): boolean;
 	}
-	_registerCreepRole(role: CreepRole, acceptedTasks: Array<[TTaskCategory, BasicTaskType | MediumTaskType] | [TTaskCategory, BasicTaskType | MediumTaskType, string[]]>, bodyparts: (room: Room) => Array<BodyPartConstant>, numComparison: (expected: number, current: number, room: Room) => boolean): boolean {
-		this.data.bodyparts[role] = bodyparts;
-		this.data.numComparison[role] = numComparison;
-		this.data.acceptedTasks[role] = acceptedTasks;
+	_registerCreepRole(role: CreepRole, information: { acceptedTasks: Array<[TTaskCategory, BasicTaskType | MediumTaskType] | [TTaskCategory, BasicTaskType | MediumTaskType, string[]]>, bodyparts: (room: Room) => Array<BodyPartConstant>, numComparison: (expected: number, current: number, room: Room) => boolean, roleSpawnPriority: (room: Room) => number }): boolean {
+		this.data.bodyparts[role] = information.bodyparts;
+		this.data.numComparison[role] = information.numComparison;
+		this.data.roleSpawnPriority[role] = information.roleSpawnPriority;
+		this.data.acceptedTasks[role] = information.acceptedTasks;
 		return true;
 	}
 	_modifyExpectedCreeps(roomName: string, role: CreepRole, modify: number): boolean {
@@ -40,9 +42,10 @@ export class spawnProcessor {
 		if ((this.data.numComparison[role] as any)(expectedNum, currentNum, Game.rooms[roomName])) return (this.data.bodyparts[role] as any)(Game.rooms[roomName]);
 		return undefined;
 	}
-	/** @todo */
 	_getSpawnOrder(room: Room): Array<CreepRole> {
-		return [];
+		const ret: Array<CreepRole> = [];
+		for (const role in this.data.roleSpawnPriority) ret.push(role as CreepRole);
+		return ret.sort((role_a, role_b) => this.data.roleSpawnPriority[role_a]!(room) - this.data.roleSpawnPriority[role_b]!(room));
 	}
 	_scanCurrentCreeps(room: Room): boolean {
 		const modifyCurrentSpawn = (role: CreepRole, modify: number): boolean => {
@@ -87,7 +90,7 @@ export class spawnProcessor {
 		});
 	}
 	constructor() {
-		this.data = { bodyparts: {}, numComparison: {}, acceptedTasks: {} };
+		this.data = { bodyparts: {}, numComparison: {}, acceptedTasks: {}, roleSpawnPriority: {} };
 		this.instructions = {
 			getFromSpawn: this._getFromSpawn,
 			getSpawnOrder: this._getSpawnOrder,

@@ -164,10 +164,16 @@ export const roomInfoRefreshInterval = {
 	"creep": 2
 }
 
-/** The Order to check whether these roles should be spawned */
-export const spawnOrder = {
-
-}
-
 /** The Interval between the spawn of two Creeps */
 export const spawnInterval = 50;
+
+export const structureMultipleList = [
+	STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_ROAD, STRUCTURE_WALL,
+	STRUCTURE_RAMPART, STRUCTURE_KEEPER_LAIR, STRUCTURE_PORTAL, STRUCTURE_LINK,
+	STRUCTURE_TOWER, STRUCTURE_LAB, STRUCTURE_CONTAINER, STRUCTURE_POWER_BANK,
+];
+
+export const structureSingleList = [
+	STRUCTURE_OBSERVER, STRUCTURE_POWER_SPAWN, STRUCTURE_EXTRACTOR, STRUCTURE_NUKER,
+	STRUCTURE_CONTROLLER, STRUCTURE_FACTORY, // STRUCTURE_STORAGE, STRUCTURE_TERMINAL,
+];

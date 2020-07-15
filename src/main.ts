@@ -22,6 +22,7 @@ export const loop = ErrorMapper.wrapLoop(() => {
 	// Collect Current Creep Info
 	global.spawnSystem.Processor.run();
 	// Run the Main Program
+	global.structureSystem.Processor.run();
 	global.taskSystem.Controller.run();
 	// Spawn the Creeps
 	global.spawnSystem.Processor.spawn();

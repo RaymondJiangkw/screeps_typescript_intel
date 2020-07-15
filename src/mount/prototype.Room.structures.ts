@@ -29,6 +29,7 @@ Changelog:
 /// <reference path="prototype.Room.structures.d.ts" />
 
 import { getCacheExpiration } from "../utils/utils";
+import { structureSingleList, structureMultipleList } from "../utils/settings"
 
 var roomStructures: { [roomName: string]: { [structureName: string]: Array<string> } } = {};
 var roomStructuresExpiration: { [roomName: string]: number } = {};
@@ -44,17 +45,6 @@ var roomRuinsExpiration: { [roomName: string]: number } = {};
 
 var roomHostileStructures: { [roomName: string]: Array<string> } = {};
 var roomHostileStructuresExpiration: { [roomName: string]: number } = {};
-
-const structureMultipleList = [
-	STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_ROAD, STRUCTURE_WALL,
-	STRUCTURE_RAMPART, STRUCTURE_KEEPER_LAIR, STRUCTURE_PORTAL, STRUCTURE_LINK,
-	STRUCTURE_TOWER, STRUCTURE_LAB, STRUCTURE_CONTAINER, STRUCTURE_POWER_BANK,
-];
-
-const structureSingleList = [
-	STRUCTURE_OBSERVER, STRUCTURE_POWER_SPAWN, STRUCTURE_EXTRACTOR, STRUCTURE_NUKER,
-	STRUCTURE_CONTROLLER, STRUCTURE_FACTORY, // STRUCTURE_STORAGE, STRUCTURE_TERMINAL,
-];
 
 /********* CPU Profiling stats for Room.prototype._checkRoomCache **********
 calls         time      avg        function

@@ -61,7 +61,9 @@ $ rollup -cw --environment DEST:main
 - [Information System](./docs/infoSystem.md)
 - [Spawning System](./docs/spawnSystem.md)
 - [Task System](./docs/taskSystem.md)
+- [Structure System](./docs/structureSystem.md)
 
 ## Log
 
+- 2020/07/15 Add `structureSystem` and Finish the review. Basically write the documentations.
 - 2020/07/12 Initialize *README.md* and plan for review of the whole process, `infoSystem` -> `taskSystem` -> `spawnSystem`.

@@ -1,6 +1,7 @@
 /// <reference path="taskSystem.d.ts"/>
 /// <reference path="infoSystem.d.ts" />
 /// <reference path="spawnSystem.d.ts" />
+/// <reference path="structureSystem.d.ts" />
 
 
 // <reference path="infoSystem.d.ts" />
@@ -106,6 +107,9 @@ declare namespace NodeJS {
 				}
 			}
 			Processor: spawnProcessor
+		}
+		structureSystem: {
+			Processor: structureProcessor
 		}
 		/** Temporary Data Collected from Last Tick */
 		tmp: {

@@ -1,6 +1,6 @@
 ## Design
 
-*Intelligence* is currently designed to be composed of `5` systems, [`taskSystem`](taskSystem.md), [`spawnSystem`](spawnSystem.md), [`infoSystem`](infoSystem.md), `supplyDemandSystem`*(under development)* and `structureSystem`*(under development)*.
+*Intelligence* is currently designed to be composed of `5` systems, [`taskSystem`](taskSystem.md), [`spawnSystem`](spawnSystem.md), [`infoSystem`](infoSystem.md), `supplyDemandSystem`*(under development)* and [`structureSystem`](structureSystem.md).
 ### InfoSystem
 #### Function
 > Collect information about all visible rooms for further usage.
@@ -32,6 +32,12 @@ Every kind of `room` can take arbitrary combination of `information` to collect.
 `SpawnSystem` currently still depends on `role` and `quantity`.
 - `Role` needs to be *registered* into the system, along with its *bodypart-deciding* function and *quantity-comparison* function.
 - `Quantity` is collected based on the **demand** from `taskSystem` as *expectedCreeps*. The number of each `role` does **NOT** mean directly the *expected number* of *live* `creeps` of this `role`. It should be compared with the *real number* of *live* `creeps` of this `role` as *currentCreeps* to decide whether to spawn more.
+
+### StructureSystem
+#### Function
+> Manage and Run structures.
+
+`StructureSystem` again employs the `register` mechanism to try to make codes for different `structures` separately and cleanly.
 
 ### TaskSystem
 #### Function
